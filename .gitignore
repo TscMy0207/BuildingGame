@@ -28,3 +28,40 @@
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Luban generation lock and validation build output
+/ConfigTables/Generation/.generation.lock
+/Tools/ConfigTablesValidator/bin/
+/Tools/ConfigTablesValidator/obj/
+!/Tools/ConfigTablesValidator/ConfigTablesValidator.csproj
+
+# YooAsset generated bundles and editor simulation output
+/Bundles/
+
+# 商店插件及配套资源仅保留在本机 不随公开仓库分发
+/Assets/Plugins/DarkTonic/
+/Assets/Plugins/DarkTonic.meta
+/Assets/Plugins/Editor/DarkTonic/
+/Assets/Plugins/Editor/DarkTonic.meta
+/Assets/Plugins/Easy Save 3/
+/Assets/Plugins/Easy Save 3.meta
+/Assets/Plugins/RelationsInspector/
+/Assets/Plugins/RelationsInspector.meta
+/Assets/Plugins/Editor/RelationsInspector/
+/Assets/Plugins/Editor/RelationsInspector.meta
+/Assets/Editor Default Resources/MasterAudio/
+/Assets/Editor Default Resources/MasterAudio.meta
+/Assets/Gizmos/MasterAudio/
+/Assets/Gizmos/MasterAudio.meta
+/Assets/Resources/MasterAudio/
+/Assets/Resources/MasterAudio.meta
+
+# 本机凭据与原始资源包
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.keystore
+*.jks
+*.unitypackage

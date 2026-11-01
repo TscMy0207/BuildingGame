@@ -1,0 +1,5 @@
+{
+  "name": "Framework.ConfigTables.Editor",
+  "references": ["Game", "Luban.Runtime", "YooAsset", "YooAsset.Editor"],
+  "includePlatforms": ["Editor"]
+}

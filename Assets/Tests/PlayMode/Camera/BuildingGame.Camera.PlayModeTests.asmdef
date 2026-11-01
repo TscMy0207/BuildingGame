@@ -1,0 +1,12 @@
+{
+  "name": "BuildingGame.Camera.PlayModeTests",
+  "references": [
+    "Game",
+    "Cinemachine",
+    "UniTask",
+    "VContainer"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

@@ -13,7 +13,10 @@
 
 ## 编码约定
 
-- 优先遵循所在模块已有风格；没有现成约定时，类型、方法和属性使用PascalCase，参数和局部变量使用camelCase，私有字段使用_camelCase
+- 项目自有C#代码的命名遵循.NET Runtime风格，以项目根目录的.editorconfig作为Rider等IDE的命名规则来源；第三方源码与生成代码保持原样
+- 命名空间、类、结构体、枚举、委托、方法（含局部函数）、属性、事件、枚举成员及常量（含局部常量）使用PascalCase；接口使用I前缀加PascalCase，泛型类型参数使用T或T前缀加PascalCase
+- 参数及非常量局部变量使用camelCase；private和internal实例字段使用_camelCase，静态字段（含static readonly）使用s_camelCase，标有[ThreadStatic]的线程静态字段使用t_camelCase；常量始终使用PascalCase，不添加字段前缀
+- public和protected可见字段使用PascalCase，尽量通过属性暴露数据；字段命名不使用m_前缀，名称优先清楚表达用途，避免不通用的缩写
 - 类与脚本名称应清楚表达职责，MonoBehaviour脚本文件名与类名保持一致
 - 每个类承担明确职责，采用满足当前需求的简单实现，避免无实际需求的抽象、通用框架和过度拆分
 - 需要在Inspector配置的私有字段使用[SerializeField]，不要仅为Inspector显示而公开字段

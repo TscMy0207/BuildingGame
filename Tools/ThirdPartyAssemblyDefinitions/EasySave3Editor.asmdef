@@ -1,0 +1,9 @@
+{
+  "name": "EasySave3Editor",
+  "references": [
+    "EasySave3"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ]
+}

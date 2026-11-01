@@ -1,0 +1,94 @@
+root = true
+
+# 命名规则来源：https://github.com/dotnet/runtime/blob/main/docs/coding-guidelines/coding-style.md
+# 仅应用于项目自有脚本
+[Assets/Scripts/**.cs]
+
+# Rider按项目规则检查并生成名称
+resharper_inconsistent_naming_highlighting = warning
+resharper_csharp_naming_rule.types_and_namespaces = AaBb
+resharper_csharp_naming_rule.interfaces = I+AaBb
+resharper_csharp_naming_rule.type_parameters = T+AaBb
+resharper_csharp_naming_rule.method = AaBb
+resharper_csharp_naming_rule.property = AaBb
+resharper_csharp_naming_rule.event = AaBb
+resharper_csharp_naming_rule.locals = aaBb
+resharper_csharp_naming_rule.parameters = aaBb
+resharper_csharp_naming_rule.local_functions = AaBb
+resharper_csharp_naming_rule.local_constants = AaBb
+resharper_csharp_naming_rule.constants = AaBb
+resharper_csharp_naming_rule.private_constants = AaBb
+resharper_csharp_naming_rule.enum_member = AaBb
+resharper_csharp_naming_rule.public_fields = AaBb
+resharper_csharp_naming_rule.private_instance_fields = _+aaBb
+resharper_csharp_naming_rule.private_static_fields = s_+aaBb,t_+aaBb
+resharper_csharp_naming_rule.private_static_readonly = s_+aaBb,t_+aaBb
+resharper_csharp_naming_rule.static_readonly = AaBb
+
+# PascalCase及各种前缀
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+dotnet_naming_style.camel_case.capitalization = camel_case
+dotnet_naming_style.instance_field.capitalization = camel_case
+dotnet_naming_style.instance_field.required_prefix = _
+dotnet_naming_style.static_field.capitalization = camel_case
+dotnet_naming_style.static_field.required_prefix = s_
+dotnet_naming_style.interface.capitalization = pascal_case
+dotnet_naming_style.interface.required_prefix = I
+dotnet_naming_style.type_parameter.capitalization = pascal_case
+dotnet_naming_style.type_parameter.required_prefix = T
+
+# 常量优先于普通字段规则，局部常量也使用PascalCase
+dotnet_naming_rule.constants.severity = suggestion
+dotnet_naming_rule.constants.symbols = constants
+dotnet_naming_rule.constants.style = pascal_case
+dotnet_naming_symbols.constants.applicable_kinds = field, local
+dotnet_naming_symbols.constants.required_modifiers = const
+
+# private和internal静态字段，包含static readonly
+dotnet_naming_rule.non_public_static_fields.severity = suggestion
+dotnet_naming_rule.non_public_static_fields.symbols = non_public_static_fields
+dotnet_naming_rule.non_public_static_fields.style = static_field
+# EditorConfig无法按ThreadStatic特性筛选，Rider额外允许t_，特性与前缀对应关系由代码审查核对
+dotnet_naming_rule.non_public_static_fields.resharper_style = s_+aaBb,t_+aaBb
+dotnet_naming_symbols.non_public_static_fields.applicable_kinds = field
+dotnet_naming_symbols.non_public_static_fields.applicable_accessibilities = private, internal, private_protected
+dotnet_naming_symbols.non_public_static_fields.required_modifiers = static
+
+# 更具体的静态字段和常量规则覆盖此通用字段规则
+dotnet_naming_rule.private_internal_fields.severity = suggestion
+dotnet_naming_rule.private_internal_fields.symbols = private_internal_fields
+dotnet_naming_rule.private_internal_fields.style = instance_field
+dotnet_naming_symbols.private_internal_fields.applicable_kinds = field
+dotnet_naming_symbols.private_internal_fields.applicable_accessibilities = private, internal
+dotnet_naming_symbols.private_internal_fields.resharper_applicable_kinds = field, readonly_field, unity_serialised_field
+
+dotnet_naming_rule.visible_fields.severity = suggestion
+dotnet_naming_rule.visible_fields.symbols = visible_fields
+dotnet_naming_rule.visible_fields.style = pascal_case
+dotnet_naming_symbols.visible_fields.applicable_kinds = field
+dotnet_naming_symbols.visible_fields.applicable_accessibilities = public, protected, protected_internal, private_protected
+
+dotnet_naming_rule.types_and_namespaces.severity = suggestion
+dotnet_naming_rule.types_and_namespaces.symbols = types_and_namespaces
+dotnet_naming_rule.types_and_namespaces.style = pascal_case
+dotnet_naming_symbols.types_and_namespaces.applicable_kinds = namespace, class, struct, enum, delegate
+
+dotnet_naming_rule.interfaces.severity = suggestion
+dotnet_naming_rule.interfaces.symbols = interfaces
+dotnet_naming_rule.interfaces.style = interface
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+
+dotnet_naming_rule.type_parameters.severity = suggestion
+dotnet_naming_rule.type_parameters.symbols = type_parameters
+dotnet_naming_rule.type_parameters.style = type_parameter
+dotnet_naming_symbols.type_parameters.applicable_kinds = type_parameter
+
+dotnet_naming_rule.members.severity = suggestion
+dotnet_naming_rule.members.symbols = members
+dotnet_naming_rule.members.style = pascal_case
+dotnet_naming_symbols.members.applicable_kinds = method, property, event
+
+dotnet_naming_rule.parameters_and_locals.severity = suggestion
+dotnet_naming_rule.parameters_and_locals.symbols = parameters_and_locals
+dotnet_naming_rule.parameters_and_locals.style = camel_case
+dotnet_naming_symbols.parameters_and_locals.applicable_kinds = parameter, local

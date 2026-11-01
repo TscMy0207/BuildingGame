@@ -1,0 +1,6 @@
+{
+  "name": "BuildingGame.ConfigTables.Tests",
+  "references": ["Game", "Luban.Runtime", "UniTask", "VContainer", "YooAsset"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

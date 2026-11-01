@@ -1,0 +1,13 @@
+{
+  "name": "BuildingGame.Audio.PlayModeTests",
+  "references": [
+    "Game",
+    "DarkTonic.MasterAudio",
+    "UniTask",
+    "VContainer",
+    "YooAsset"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

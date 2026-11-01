@@ -1,0 +1,10 @@
+{
+  "name": "BuildingGame.Pooling.EditorTests",
+  "references": [],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

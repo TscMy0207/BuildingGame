@@ -1,0 +1,10 @@
+{
+  "name": "BuildingGame.Camera.EditorTests",
+  "references": [],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

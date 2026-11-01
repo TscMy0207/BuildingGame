@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="../../Packages/com.code-philosophy.luban/Runtime/ByteBuf.cs" />
+    <Compile Include="../../Packages/com.code-philosophy.luban/Runtime/BeanBase.cs" />
+    <Compile Include="../../Packages/com.code-philosophy.luban/Runtime/StringUtil.cs" />
+    <Compile Include="$(GeneratedConfigDir)/*.cs" />
+  </ItemGroup>
+</Project>

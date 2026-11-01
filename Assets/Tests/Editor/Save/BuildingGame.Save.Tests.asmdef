@@ -1,0 +1,15 @@
+{
+  "name": "BuildingGame.Save.Tests",
+  "references": [
+    "Game",
+    "EasySave3",
+    "UniTask",
+    "VContainer"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

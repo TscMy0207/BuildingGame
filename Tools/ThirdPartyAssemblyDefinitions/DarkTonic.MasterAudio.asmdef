@@ -1,0 +1,5 @@
+{
+  "name": "DarkTonic.MasterAudio",
+  "references": ["UnityEngine.UI"],
+  "autoReferenced": true
+}

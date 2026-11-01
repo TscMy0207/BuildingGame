@@ -1,0 +1,9 @@
+{
+  "generatorVersion": "5.1.0",
+  "generatorCommit": "df34215d2e22035073d1af83d44e3ac0744dc3b3",
+  "generatorArchive": "https://github.com/focus-creative-games/luban/releases/download/v5.1.0/Luban.7z",
+  "generatorArchiveSha256": "bac9a1b8d69cfeaa7ef1d8c67b34a007324d1cd158e0b14294521b3879ba5213",
+  "runtimePackageVersion": "1.2.0",
+  "runtimeCommit": "061314200e2f03307c4d90b448e1de7b85431905",
+  "runtimeRepository": "https://github.com/focus-creative-games/luban_unity"
+}

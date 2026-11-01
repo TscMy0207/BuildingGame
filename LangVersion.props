@@ -1,0 +1,5 @@
+<Project>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Game' Or '$(MSBuildProjectName)' == 'ZLogger.Unity'">
+    <LangVersion>10.0</LangVersion>
+  </PropertyGroup>
+</Project>

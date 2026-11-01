@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<module name="">
+  <enum name="PanelLayer" comment="UI面板配置层级">
+    <var name="Page" value="0" comment="页面层" />
+    <var name="Popup" value="1" comment="弹窗层" />
+    <var name="Overlay" value="2" comment="覆盖层" />
+    <var name="Toast" value="3" comment="提示层" />
+  </enum>
+  <bean name="UIPanelRecord" comment="UI面板配置记录">
+    <var name="id" type="int#range=[1,]" comment="稳定面板ID" />
+    <var name="prefab_location" type="string!" comment="YooAsset包名与采集地址" />
+    <var name="layer" type="PanelLayer" comment="面板层级" />
+  </bean>
+  <table name="TbUIPanel" value="UIPanelRecord" mode="map" index="id" input="UIPanel@UIPanel.xlsx" output="uipanel" comment="UI面板配置表" />
+</module>

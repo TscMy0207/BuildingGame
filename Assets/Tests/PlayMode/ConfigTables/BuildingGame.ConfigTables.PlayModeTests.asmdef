@@ -1,0 +1,5 @@
+{
+  "name": "BuildingGame.ConfigTables.PlayModeTests",
+  "references": ["Game", "Luban.Runtime", "UniTask", "VContainer", "YooAsset"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

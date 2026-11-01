@@ -1,0 +1,10 @@
+{
+  "name": "BuildingGame.Audio.EditorTests",
+  "references": [],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

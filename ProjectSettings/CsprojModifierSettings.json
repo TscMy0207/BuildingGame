@@ -1,0 +1,14 @@
+{
+  "AdditionalImports": [
+    {
+      "Path": "LangVersion.props",
+      "Position": 0
+    }
+  ],
+  "AdditionalImportsAdditionalProjects": [
+    "Game.csproj",
+    "ZLogger.Unity.csproj"
+  ],
+  "EnableAddAnalyzerReferences": false,
+  "AddAnalyzerReferencesAdditionalProjects": []
+}

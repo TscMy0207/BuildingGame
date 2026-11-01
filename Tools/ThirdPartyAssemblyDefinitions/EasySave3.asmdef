@@ -1,0 +1,6 @@
+{
+  "name": "EasySave3",
+  "references": [
+    "Unity.VisualScripting.Core"
+  ]
+}
