@@ -14,5 +14,6 @@ public class GameLifetimeScope : LifetimeScope
     {
         base.Configure(builder);
         FrameworkComposition.RegisterDefaults(builder);
+        CoreComposition.RegisterDefaults(builder);
     }
 }

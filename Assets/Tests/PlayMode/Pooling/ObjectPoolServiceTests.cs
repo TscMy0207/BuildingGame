@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
@@ -190,36 +189,6 @@ public sealed class ObjectPoolServiceTests
     }
 
     /// <summary>
-    /// 验证模块池隔离 当前模块销毁后其他模块对象继续有效
-    /// </summary>
-    /// <returns>等待Scope资源回收</returns>
-    [UnityTest]
-    public IEnumerator ScopeIsolationAndAutomaticCleanup()
-    {
-        using var firstScope = CreateModuleScope("First");
-        using var secondScope = CreateModuleScope("Second");
-        var firstPool = firstScope.Resolve<IScopeObjectPoolService>();
-        var secondPool = secondScope.Resolve<IScopeObjectPoolService>();
-        var first = firstPool.SpawnAsync(Location).AsTask();
-        var second = secondPool.SpawnAsync(Location).AsTask();
-        yield return Await(first);
-        yield return Await(second);
-        Assert.That(first.Result.GetComponent<PoolProbe>().ContainerName, Is.EqualTo("First"));
-        Assert.That(second.Result.GetComponent<PoolProbe>().ContainerName, Is.EqualTo("Second"));
-        Assert.That(firstPool.Despawn(second.Result), Is.False);
-        Assert.That(_pool.Despawn(first.Result), Is.False);
-        firstScope.Dispose();
-        yield return Await(firstPool.ClearAllAsync().AsTask());
-        Assert.That(first.Result == null, Is.True);
-        Assert.That(second.Result != null, Is.True);
-        Assert.That(_loader.Releases, Is.EqualTo(1));
-        secondScope.Dispose();
-        yield return Await(secondPool.ClearAllAsync().AsTask());
-        Assert.That(_loader.Loads, Is.EqualTo(2));
-        Assert.That(_loader.Releases, Is.EqualTo(2));
-    }
-
-    /// <summary>
     /// 验证被外部销毁的空闲对象不会被再次借出
     /// </summary>
     /// <returns>等待Unity销毁完成</returns>
@@ -251,23 +220,6 @@ public sealed class ObjectPoolServiceTests
         Assert.That(_pool.Despawn(_prefab), Is.False);
         Assert.That(_loader.Loads, Is.Zero);
         yield return null;
-    }
-
-    /// <summary>
-    /// 通过模块自身注册方法创建实际子容器
-    /// </summary>
-    /// <param name="name">模块依赖标记</param>
-    /// <returns>测试模块Scope</returns>
-    private IScopedObjectResolver CreateModuleScope(string name)
-    {
-        return _container.CreateScope(builder =>
-        {
-            var module = new TestModule();
-            builder.RegisterInstance<IScopeModule>(module);
-            builder.RegisterInstance(new PoolProbeDependency(name));
-            typeof(ScopeModule).GetMethod("Configure", BindingFlags.Instance | BindingFlags.NonPublic)
-                .Invoke(module, new object[] { builder });
-        });
     }
 
     /// <summary>
@@ -339,21 +291,4 @@ public sealed class ObjectPoolServiceTests
         }
     }
 
-    /// <summary>
-    /// 只验证模块默认服务注册的最小模块
-    /// </summary>
-    private sealed class TestModule : ScopeModule
-    {
-        /// <summary>本测试不增加其他模块服务</summary>
-        /// <param name="builder">模块容器构建器</param>
-        protected override void OnConfigure(IContainerBuilder builder) { }
-        /// <summary>测试模块无需启动业务</summary>
-        /// <returns>完成任务</returns>
-        protected override UniTask OnStartAsync() => UniTask.CompletedTask;
-        /// <summary>测试模块无需停止业务</summary>
-        /// <returns>完成任务</returns>
-        protected override UniTask OnStopAsync() => UniTask.CompletedTask;
-        /// <summary>测试模块不持有额外资源</summary>
-        protected override void OnDispose() { }
-    }
 }

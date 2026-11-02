@@ -21,7 +21,6 @@ public static class FrameworkComposition
         // 日志服务
         builder.Register<LoggingService>(Lifetime.Singleton).As<ILoggingService>().As<IStartupService>();
         builder.Register(typeof(Logger<>), Lifetime.Singleton).As(typeof(ILogger<>));
-
         // 时间服务
         builder.Register<TimerService>(Lifetime.Singleton).As<ITimerService>().As<IStartupService>();
         // 事件服务
@@ -39,14 +38,12 @@ public static class FrameworkComposition
         builder.Register<UIService>(Lifetime.Singleton).As<IUIService>().As<IStartupService>();
         // 摄像机服务
         builder.Register<CameraService>(Lifetime.Singleton).As<ICameraService>().As<IStartupService>();
-        // 模块服务
-        builder.Register<ModuleCatalog>(Lifetime.Singleton).AsSelf().As<IModuleCatalog>();
-        builder.Register<ModuleService>(Lifetime.Singleton).As<IModuleService>().As<IStartupService>();
         // 保存服务
         builder.Register<SaveService>(Lifetime.Singleton).As<ISaveService>().As<IStartupService>();
         // 音频设置以及音频服务
         builder.Register<AudioSettingsSaveDataHandler>(Lifetime.Singleton).As<ISaveDataHandler>().As<IAudioSettings>();
         builder.Register<AudioService>(Lifetime.Singleton).As<IAudioService>().As<IStartupService>();
+
         // 启动器服务
         builder.Register<ServiceStartupCoordinator>(Lifetime.Singleton).As<IServiceStartupCoordinator>();
     }

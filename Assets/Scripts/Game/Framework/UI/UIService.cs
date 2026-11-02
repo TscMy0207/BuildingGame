@@ -6,239 +6,195 @@ using UnityEngine;
 using VContainer;
 using Object = UnityEngine.Object;
 
-/// <summary>
-/// UI服务接口
-/// </summary>
+/// <summary>通过全局容器打开和关闭UI面板</summary>
 public interface IUIService
 {
-    /// <summary>
-    /// 打开指定UI面板
-    /// 加载并实例化预制体后注册实例
-    /// 返回的UIPanelHandle由调用方或所在Scope负责关闭
-    /// 打开失败时会清理已创建的游戏对象和资源引用
-    /// </summary>
+    /// <summary>加载面板并从全局容器注入依赖 关闭面板或销毁对象时归还资源引用</summary>
     /// <param name="key">UI键值</param>
-    /// <param name="args">UI打开参数</param>
-    /// <param name="scopeResolver">对象解析器</param>
-    /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>UI面板句柄</returns>
-    UniTask<UIPanelHandle> OpenAsync<TArgs>(UIKey<TArgs> key, TArgs args, IObjectResolver scopeResolver, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// 关闭指定UI面板
-    /// </summary>
-    /// <param name="handle">UI面板句柄</param>
-    /// <returns>关闭任务</returns>
+    /// <param name="args">打开参数</param>
+    /// <param name="cancellationToken">打开期间的取消令牌</param>
+    /// <returns>面板句柄</returns>
+    UniTask<UIPanelHandle> OpenAsync<TArgs>(UIKey<TArgs> key, TArgs args, CancellationToken cancellationToken = default);
+    /// <summary>关闭指定面板</summary>
     UniTask CloseAsync(UIPanelHandle handle);
-
-    /// <summary>
-    /// 立即释放指定UI面板
-    /// 销毁面板游戏对象并释放对应资源引用
-    /// </summary>
-    /// <param name="handle">UI面板句柄</param>
+    /// <summary>请求销毁指定面板 资源在Unity完成销毁后自动归还</summary>
     void DisposeImmediately(UIPanelHandle handle);
 }
 
-/// <summary>
-/// 全局UI基础服务
-/// </summary>
+/// <summary>持有全局UI根节点并管理已打开面板</summary>
 internal sealed class UIService : IStartupService, IUIService
 {
-    #region 服务生命周期
-
-    public int Priority => FrameworkSettings.UIStartupPriority;
-    public string Description => "UI服务";
-    public float Weight => FrameworkSettings.UIStartupWeight;
-
-    public async UniTask StartAsync(StartupContext context)
-    {
-        m_lifetimeToken = context.LifetimeToken;
-        context.LifetimeToken.ThrowIfCancellationRequested();
-        context.ReportProgress?.Invoke(0.1f, "加载UIRoot");
-        await InitializeRootAsync();
-        context.LifetimeToken.ThrowIfCancellationRequested();
-        context.ReportProgress?.Invoke(1f, "UIRoot初始化完成");
-    }
-
-    public void Dispose()
-    {
-        if (m_uiRoot == null && m_instances.Count == 0)
-            return;
-        
-        var handles = new List<UIPanelHandle>(m_instances.Keys);
-        for (var i = handles.Count - 1; i >= 0; i--)
-            DisposeImmediately(handles[i]);
-
-        if (m_uiRoot == null)
-            return;
-
-        Object.Destroy(m_uiRoot.gameObject);
-        m_resources.ReleaseAsset<GameObject>(RootPrefab);
-        m_uiRoot = null;
-    }
-
-    #endregion
-
-    private readonly IResourcesService m_resources;
-    private readonly IFrameworkConfigTableService m_configTableService;
-    private readonly ILogger<UIService> m_logger;
-    private readonly Dictionary<UIPanelHandle, PanelInstance> m_instances = new();
-
-    private UIRoot m_uiRoot;
-    private CancellationToken m_lifetimeToken = new(true);
-    private int m_nextHandleId;
-    
+    /// <summary>UI服务的资源加载入口</summary>
+    private readonly IResourcesService _resources;
+    /// <summary>面板配置来源</summary>
+    private readonly IFrameworkConfigTableService _configTableService;
+    /// <summary>异常记录器</summary>
+    private readonly ILogger<UIService> _logger;
+    /// <summary>注册当前单例服务的全局容器</summary>
+    private readonly IObjectResolver _rootResolver;
+    /// <summary>当前服务拥有的面板实例</summary>
+    private readonly Dictionary<UIPanelHandle, PanelInstance> _instances = new();
+    /// <summary>服务销毁时取消尚未结束的打开流程</summary>
+    private readonly CancellationTokenSource _shutdown = new();
+    /// <summary>全局UI层级节点</summary>
+    private UIRoot _uiRoot;
+    /// <summary>启动协调器提供的全局生命周期</summary>
+    private CancellationToken _lifetimeToken = new(true);
+    /// <summary>下一个实例编号</summary>
+    private int _nextHandleId;
+    /// <summary>服务是否已关闭</summary>
+    private bool _disposed;
+    /// <summary>全局UI根预制体地址</summary>
     private const string RootPrefab = FrameworkSettings.UIRootLocation;
 
-    public UIService(IResourcesService resources, IFrameworkConfigTableService configTableService, ILogger<UIService> logger)
+    /// <summary>启动顺序</summary>
+    public int Priority => FrameworkSettings.UIStartupPriority;
+    /// <summary>启动进度说明</summary>
+    public string Description => "UI服务";
+    /// <summary>启动进度权重</summary>
+    public float Weight => FrameworkSettings.UIStartupWeight;
+
+    /// <summary>接收框架服务及所属全局容器</summary>
+    public UIService(IResourcesService resources, IFrameworkConfigTableService configTableService,
+        ILogger<UIService> logger, IObjectResolver rootResolver)
     {
-        m_resources = resources;
-        m_configTableService = configTableService;
-        m_logger = logger;
+        _resources = resources;
+        _configTableService = configTableService;
+        _logger = logger;
+        _rootResolver = rootResolver;
     }
 
-    /// <summary>
-    /// 初始化UI根节点
-    /// </summary>
-    private async UniTask InitializeRootAsync()
+    /// <summary>加载并保留全局UI根节点</summary>
+    public async UniTask StartAsync(StartupContext context)
     {
-        if (m_uiRoot != null)
-            return;
-
-        GameObject instance = null;
-        try
+        if (_disposed) throw new ObjectDisposedException(nameof(UIService));
+        _lifetimeToken = context.LifetimeToken;
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeToken, _shutdown.Token);
+        linked.Token.ThrowIfCancellationRequested();
+        context.ReportProgress?.Invoke(0.1f, "加载UI根节点");
+        if (_uiRoot == null)
         {
-            instance = await m_resources.LoadAndInstantiatePrefabAsync(RootPrefab);
-            m_uiRoot = instance.GetComponent<UIRoot>();
-            if (m_uiRoot == null)
-                throw new InvalidOperationException($"UIRoot prefab缺少UIRoot脚本:{RootPrefab}");
-
-            Object.DontDestroyOnLoad(instance);
-        }
-        catch
-        {
-            if (instance != null)
-            {
-                Object.Destroy(instance);
-                m_resources.ReleaseAsset<GameObject>(RootPrefab);
-            }
-
-            m_uiRoot = null;
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// 打开UI面板
-    /// </summary>
-    public async UniTask<UIPanelHandle> OpenAsync<TArgs>(UIKey<TArgs> key, TArgs args, IObjectResolver scopeResolver, CancellationToken cancellationToken)
-    {
-        if (scopeResolver == null) throw new ArgumentNullException(nameof(scopeResolver));
-
-        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(m_lifetimeToken, cancellationToken);
-        var openingToken = linkedCancellation.Token;
-        openingToken.ThrowIfCancellationRequested();
-
-        if (!m_configTableService.TryGetPanelConfig(key.Id, out var config)) throw new KeyNotFoundException($"未找到UI面板配置{key.Name}");
-
-        GameObject instanceObject = null;
-        PanelInstance panelInstance = null;
-
-        try
-        {
-            // 加载预制体
-            var parent = m_uiRoot.GetLayerRoot(config.Layer);
-            instanceObject = await m_resources.LoadAndInstantiatePrefabWithResolverAsync(config.PrefabLocation, scopeResolver, parent, false, openingToken);
-            openingToken.ThrowIfCancellationRequested();
-
-            var panelView = instanceObject.GetComponent<IUIPanelView>();
-            if (panelView is not IUIPanelView<TArgs> typedPanelView)
-            {
-                var actualType = panelView == null ? "缺少IUIPanelView" : panelView.GetType().Name;
-                throw new InvalidOperationException($"UI面板{key.Name}参数类型不匹配 期望{typeof(TArgs).Name}实际{actualType}");
-            }
-
-            // 注册实例
-            var handle = new UIPanelHandle(++m_nextHandleId);
-            panelInstance = new PanelInstance(handle, key.Id, instanceObject, config.PrefabLocation);
-            m_instances.Add(handle, panelInstance);
-
-            await typedPanelView.OnOpeningAsync(args, openingToken);
-            openingToken.ThrowIfCancellationRequested();
-            return handle;
-        }
-        catch (Exception e)
-        {
+            GameObject instance = null;
             try
             {
-                if (panelInstance != null) DisposeImmediately(panelInstance.Handle);
-                else
-                {
-                    if (instanceObject != null)
-                    {
-                        Object.Destroy(instanceObject);
-                        m_resources.ReleaseAsset<GameObject>(config.PrefabLocation);
-                    }
-                }
+                instance = await _resources.LoadAndInstantiatePrefabWithResolverAsync(
+                    RootPrefab, _rootResolver, cancellationToken: linked.Token);
+                _uiRoot = instance.GetComponent<UIRoot>();
+                if (_uiRoot == null) throw new InvalidOperationException($"UI根预制体缺少UIRoot脚本:{RootPrefab}");
+                Object.DontDestroyOnLoad(instance);
             }
-            catch (Exception cleanupException)
+            catch
             {
-                m_logger.Error($"打开UI面板{key.Name}时清理失败", cleanupException);
+                if (instance != null) Object.Destroy(instance);
+                _uiRoot = null;
+                throw;
             }
+        }
+        linked.Token.ThrowIfCancellationRequested();
+        context.ReportProgress?.Invoke(1f, "UI根节点初始化完成");
+    }
 
-            if (e is not OperationCanceledException)
-                m_logger.Error($"打开UI面板{key.Name}时出现异常", e);
+    /// <summary>使用全局容器创建面板 并处理打开取消或外部销毁</summary>
+    public async UniTask<UIPanelHandle> OpenAsync<TArgs>(UIKey<TArgs> key, TArgs args,
+        CancellationToken cancellationToken = default)
+    {
+        if (_disposed) throw new ObjectDisposedException(nameof(UIService));
+        if (key == null) throw new ArgumentNullException(nameof(key));
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeToken, _shutdown.Token, cancellationToken);
+        var openingToken = linked.Token;
+        openingToken.ThrowIfCancellationRequested();
+        if (_uiRoot == null) throw new InvalidOperationException("UI服务尚未初始化");
+        if (!_configTableService.TryGetPanelConfig(key.Id, out var config))
+            throw new KeyNotFoundException($"未找到UI面板配置{key.Name}");
+
+        GameObject instance = null;
+        PanelInstance panel = null;
+        try
+        {
+            instance = await _resources.LoadAndInstantiatePrefabWithResolverAsync(
+                config.PrefabLocation, _rootResolver, _uiRoot.GetLayerRoot(config.Layer), false, openingToken);
+            if (instance.GetComponent<IUIPanelView>() is not IUIPanelView<TArgs> view)
+                throw new InvalidOperationException($"UI面板{key.Name}参数类型不匹配或缺少视图 期望{typeof(TArgs).Name}");
+            var handle = new UIPanelHandle(checked(++_nextHandleId));
+            panel = new PanelInstance(this, handle, key.Id, instance);
+            _instances.Add(handle, panel);
+            panel.AddTo(instance);
+            using var panelOpening = CancellationTokenSource.CreateLinkedTokenSource(openingToken, panel.DestroyedToken);
+            await view.OnOpeningAsync(args, panelOpening.Token);
+            panelOpening.Token.ThrowIfCancellationRequested();
+            if (instance == null) throw new OperationCanceledException("UI面板在打开期间已销毁");
+            return handle;
+        }
+        catch (Exception exception)
+        {
+            if (panel != null) DisposeImmediately(panel.Handle);
+            else if (instance != null) Object.Destroy(instance);
+            if (exception is not OperationCanceledException)
+                _logger.Error($"打开UI面板{key.Name}时出现异常", exception);
             throw;
         }
     }
 
+    /// <summary>关闭面板并返回已完成任务</summary>
     public UniTask CloseAsync(UIPanelHandle handle)
     {
         DisposeImmediately(handle);
         return UniTask.CompletedTask;
     }
 
+    /// <summary>取消面板打开流程并请求Unity销毁对象</summary>
     public void DisposeImmediately(UIPanelHandle handle)
     {
-        if (!m_instances.TryGetValue(handle, out var instance))
-            return;
-
-        try
-        {
-            DisposeUIPanel(instance);
-        }
-        catch (Exception e)
-        {
-            m_logger.Error($"立即释放UI面板{instance.Id}时出现异常", e);
-        }
+        if (!_instances.TryGetValue(handle, out var panel)) return;
+        try { panel.Dispose(); }
+        catch (Exception exception) { _logger.Error($"关闭UI面板{panel.Id}时清理失败", exception); }
+        finally { if (panel.GameObject != null) Object.Destroy(panel.GameObject); }
     }
 
-    /// <summary>
-    /// 释放UI面板实例
-    /// </summary>
-    private void DisposeUIPanel(PanelInstance instance)
+    /// <summary>取消所有打开流程并销毁当前服务拥有的UI对象</summary>
+    public void Dispose()
     {
-        // 从实例字典中移除
-        if (!m_instances.Remove(instance.Handle))
-            return;
-
-        // 释放面板游戏对象
-        Object.Destroy(instance.GameObject);
-        m_resources.ReleaseAsset<GameObject>(instance.PrefabLocation);
+        if (_disposed) return;
+        _disposed = true;
+        try { _shutdown.Cancel(); }
+        catch (Exception exception) { _logger.Error("取消UI打开流程时清理失败", exception); }
+        foreach (var handle in new List<UIPanelHandle>(_instances.Keys)) DisposeImmediately(handle);
+        if (_uiRoot != null) Object.Destroy(_uiRoot.gameObject);
+        _uiRoot = null;
+        _shutdown.Dispose();
     }
 
-    private sealed class PanelInstance
+    /// <summary>跟踪单个面板的销毁并移除全局实例记录</summary>
+    private sealed class PanelInstance : LifetimeHandle
     {
+        /// <summary>拥有该面板的UI服务</summary>
+        private UIService _owner;
+        /// <summary>取消面板尚未完成的打开任务</summary>
+        private readonly CancellationTokenSource _destroyed = new();
+        /// <summary>面板配置编号</summary>
         public int Id { get; }
-        public string PrefabLocation { get; }
-        public GameObject GameObject { get; }
+        /// <summary>面板实例编号</summary>
         public UIPanelHandle Handle { get; }
-
-        public PanelInstance(UIPanelHandle handle, int id, GameObject gameObject, string prefabLocation)
+        /// <summary>Unity面板对象</summary>
+        public GameObject GameObject { get; }
+        /// <summary>面板销毁取消令牌</summary>
+        public CancellationToken DestroyedToken { get; }
+        /// <summary>记录实例所有者并缓存可在释放后读取的令牌</summary>
+        public PanelInstance(UIService owner, UIPanelHandle handle, int id, GameObject gameObject)
         {
+            _owner = owner;
             Handle = handle;
             Id = id;
             GameObject = gameObject;
-            PrefabLocation = prefabLocation;
+            DestroyedToken = _destroyed.Token;
         }
-    }}
+        /// <summary>先移除记录再取消回调以防止清理重入</summary>
+        protected override void OnDispose()
+        {
+            _owner._instances.Remove(Handle);
+            _owner = null;
+            try { _destroyed.Cancel(); }
+            finally { _destroyed.Dispose(); }
+        }
+    }
+}

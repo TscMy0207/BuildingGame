@@ -20,8 +20,6 @@ internal static class FrameworkSettings
     internal const float UIStartupWeight = 0.1f;
     internal const int EventStartupPriority = 1;
     internal const float EventStartupWeight = 0f;
-    internal const int ModuleStartupPriority = 4;
-    internal const float ModuleStartupWeight = 0f;
     internal const int SaveStartupPriority = 3;
     internal const float SaveStartupWeight = 0.05f;
     internal const int TimerStartupPriority = 1;

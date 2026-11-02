@@ -26,7 +26,7 @@ public interface IObjectPoolService
     UniTask<GameObject> SpawnAsync(string location, Transform parent = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 回收本服务借出的实例 重复回收 外部对象或其他Scope对象返回false
+    /// 回收本服务借出的实例 重复回收 外部对象返回false
     /// </summary>
     /// <param name="instance">待回收的实例</param>
     /// <returns>是否成功回收</returns>
@@ -46,10 +46,6 @@ public interface IObjectPoolService
     UniTask ClearAllAsync();
 }
 
-/// <summary>
-/// 模块独占的对象池服务 模块退出时自动销毁全部实例并归还资源引用
-/// </summary>
-public interface IScopeObjectPoolService : IObjectPoolService { }
 
 /// <summary>
 /// 池对象可选生命周期回调 在根节点和子节点上均可实现

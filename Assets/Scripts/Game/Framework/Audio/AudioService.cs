@@ -130,7 +130,8 @@ internal sealed class AudioService : IAudioService, IStartupService
                 throw new InvalidOperationException("音频服务启动前已存在Master Audio 请移除场景中重复的音频根节点");
             if (prefab == null) throw new InvalidOperationException($"音频根预制体为空:{HostPrefab}");
 
-            _instance = Object.Instantiate(prefab);
+            _prefabLoaded = false;
+            _instance = ResourceInstanceLifetime.Create(_resources, HostPrefab, prefab, cancellationToken: cancellationToken);
             _host = _instance.GetComponent<AudioServiceHost>();
             if (_host == null) throw new InvalidOperationException($"音频根预制体缺少AudioServiceHost:{HostPrefab}");
             _host.Initialize();
@@ -163,7 +164,7 @@ internal sealed class AudioService : IAudioService, IStartupService
     public void Dispose()
     {
         _disposed = true;
-        if (_eventHandle.IsValid) _eventService.Unsubscribe(_eventHandle);
+        _eventHandle?.Dispose();
         _eventHandle = default;
         _requestedPlaylist = null;
         if (_host != null && MasterAudio.SafeInstance == _host.AudioManager && MasterAudio.SoundsReady)

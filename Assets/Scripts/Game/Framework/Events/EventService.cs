@@ -50,7 +50,7 @@ internal sealed class EventService : IStartupService, IEventService
     /// <summary>
     /// 事件句柄到MessagePipe订阅释放器的映射
     /// </summary>
-    private readonly Dictionary<int, IDisposable> _subscriptions = new();
+    private readonly Dictionary<int, EventHandle> _subscriptions = new();
     /// <summary>
     /// 事件标识对应的参数类型
     /// </summary>
@@ -63,6 +63,8 @@ internal sealed class EventService : IStartupService, IEventService
     /// 下一个事件订阅句柄编号
     /// </summary>
     private int _nextHandleId;
+    /// <summary>服务是否已经释放</summary>
+    private bool _disposed;
 
     /// <summary>
     /// 创建全局事件服务
@@ -102,6 +104,7 @@ internal sealed class EventService : IStartupService, IEventService
     /// <returns>已完成的启动任务</returns>
     public UniTask StartAsync(StartupContext context)
     {
+        if (_disposed) throw new ObjectDisposedException(nameof(EventService));
         context.LifetimeToken.ThrowIfCancellationRequested();
         _lifetimeToken = context.LifetimeToken;
         return UniTask.CompletedTask;
@@ -115,6 +118,7 @@ internal sealed class EventService : IStartupService, IEventService
     /// <typeparam name="TArgs">事件参数类型</typeparam>
     public void Publish<TArgs>(EventKey<TArgs> key, TArgs args)
     {
+        if (_disposed) throw new ObjectDisposedException(nameof(EventService));
         _lifetimeToken.ThrowIfCancellationRequested();
         EnsureArgumentType(key);
         _publisher.Publish(key.Id, args);
@@ -129,15 +133,18 @@ internal sealed class EventService : IStartupService, IEventService
     /// <returns>事件订阅句柄</returns>
     public EventHandle Subscribe<TArgs>(EventKey<TArgs> key, Action<TArgs> handler)
     {
+        if (_disposed) throw new ObjectDisposedException(nameof(EventService));
         _lifetimeToken.ThrowIfCancellationRequested();
         EnsureArgumentType(key);
 
-        var handle = new EventHandle(checked(++_nextHandleId));
+        if (handler == null) throw new ArgumentNullException(nameof(handler));
+        var id = checked(++_nextHandleId);
+        EventHandle handle = null;
         var subscription = _subscriber.Subscribe(key.Id, args =>
         {
             try
             {
-                handler((TArgs)args);
+                if (handle != null && handle.IsValid && !_disposed && !_lifetimeToken.IsCancellationRequested) handler((TArgs)args);
             }
             catch (Exception exception)
             {
@@ -145,7 +152,8 @@ internal sealed class EventService : IStartupService, IEventService
             }
         });
 
-        _subscriptions.Add(handle.Id, subscription);
+        handle = new EventHandle(id, () => { _subscriptions.Remove(id); subscription.Dispose(); });
+        _subscriptions.Add(id, handle);
         return handle;
     }
 
@@ -155,8 +163,8 @@ internal sealed class EventService : IStartupService, IEventService
     /// <param name="handle">事件订阅句柄</param>
     public void Unsubscribe(EventHandle handle)
     {
-        if (!_subscriptions.Remove(handle.Id, out var subscription)) return;
-        subscription.Dispose();
+        if (handle != null && _subscriptions.TryGetValue(handle.Id, out var owned) && ReferenceEquals(owned, handle))
+            handle.Dispose();
     }
 
     /// <summary>
@@ -166,7 +174,8 @@ internal sealed class EventService : IStartupService, IEventService
     /// <returns>订阅是否仍然有效</returns>
     public bool IsSubscribed(EventHandle handle)
     {
-        return !_lifetimeToken.IsCancellationRequested && _subscriptions.ContainsKey(handle.Id);
+        return !_disposed && handle != null && handle.IsValid && !_lifetimeToken.IsCancellationRequested &&
+            _subscriptions.TryGetValue(handle.Id, out var owned) && ReferenceEquals(owned, handle);
     }
 
     /// <summary>
@@ -176,6 +185,7 @@ internal sealed class EventService : IStartupService, IEventService
     /// <typeparam name="TArgs">事件参数类型</typeparam>
     private void EnsureArgumentType<TArgs>(EventKey<TArgs> key)
     {
+        if (key == null) throw new ArgumentNullException(nameof(key));
         if (_argumentTypes.TryGetValue(key.Id, out var argumentType))
         {
             if (argumentType != typeof(TArgs))
@@ -192,7 +202,9 @@ internal sealed class EventService : IStartupService, IEventService
     /// </summary>
     public void Dispose()
     {
-        foreach (var subscription in _subscriptions.Values)
+        if (_disposed) return;
+        _disposed = true;
+        foreach (var subscription in new List<EventHandle>(_subscriptions.Values))
             subscription.Dispose();
 
         _subscriptions.Clear();

@@ -1,0 +1,5 @@
+{
+  "name": "BuildingGame.Core.PlayModeTests",
+  "references": ["Game", "VContainer", "UniTask", "YooAsset"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

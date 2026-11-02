@@ -6,27 +6,25 @@ using Cysharp.Threading.Tasks;
 /// <summary>
 /// 定时器运行时实例句柄
 /// </summary>
-public readonly struct TimerHandle : IEquatable<TimerHandle>
+public sealed class TimerHandle : LifetimeHandle
 {
-    /// <summary>
-    /// 句柄标识
-    /// </summary>
+    /// <summary>取消所属定时器的回调</summary>
+    private Action _cancel;
+    /// <summary>当前服务内唯一编号</summary>
     public int Id { get; }
-
-    /// <summary>
-    /// 是否为有效句柄
-    /// </summary>
-    public bool IsValid => Id > 0;
-
-    public TimerHandle(int id) => Id = id;
-
-    public bool Equals(TimerHandle other) => Id == other.Id;
-    public override bool Equals(object obj) => obj is TimerHandle other && Equals(other);
-    public override int GetHashCode() => Id.GetHashCode();
-    public override string ToString() => IsValid ? Id.ToString() : "None";
-
-    public static bool operator ==(TimerHandle left, TimerHandle right) => left.Equals(right);
-    public static bool operator !=(TimerHandle left, TimerHandle right) => !left.Equals(right);
+    /// <summary>是否尚未结束</summary>
+    public bool IsValid => !IsDisposed;
+    /// <summary>绑定定时器取消入口</summary>
+    /// <param name="id">定时器编号</param>
+    /// <param name="cancel">取消回调</param>
+    internal TimerHandle(int id, Action cancel) { Id = id; _cancel = cancel; }
+    /// <summary>主动取消定时器 自然完成时回调无副作用</summary>
+    protected override void OnDispose()
+    {
+        var cancel = _cancel;
+        _cancel = null;
+        cancel?.Invoke();
+    }
 }
 
 /// <summary>
@@ -77,42 +75,51 @@ public interface ITimerService
 /// </summary>
 internal sealed class TimerInstance : IDisposable
 {
-    private readonly CancellationTokenSource m_cancellation;
-    private readonly CancellationToken m_token;
-    private readonly Action<TimerHandle> m_onCompleted;
+    /// <summary>取消当前定时器的令牌源</summary>
+    private readonly CancellationTokenSource _cancellation;
+    /// <summary>缓存令牌以便令牌源释放后查询状态</summary>
+    private readonly CancellationToken _token;
+    /// <summary>结束通知回调</summary>
+    private readonly Action<TimerHandle> _onCompleted;
 
+    /// <summary>所属定时器句柄</summary>
     public TimerHandle Handle { get; }
-    public CancellationToken Token => m_token;
-    public bool IsCancellationRequested => m_token.IsCancellationRequested;
+    /// <summary>当前定时器的取消令牌</summary>
+    public CancellationToken Token => _token;
+    /// <summary>是否已经收到取消请求</summary>
+    public bool IsCancellationRequested => _token.IsCancellationRequested;
 
+    /// <summary>记录定时器的取消和完成行为</summary>
     public TimerInstance(TimerHandle handle, CancellationTokenSource cancellation, Action<TimerHandle> onCompleted)
     {
         Handle = handle;
-        m_cancellation = cancellation;
-        m_token = cancellation.Token;
-        m_onCompleted = onCompleted;
+        _cancellation = cancellation;
+        _token = cancellation.Token;
+        _onCompleted = onCompleted;
     }
 
+    /// <summary>请求停止当前定时器</summary>
     public void Cancel()
     {
-        if (m_cancellation.IsCancellationRequested)
+        if (_cancellation.IsCancellationRequested)
             return;
 
         try
         {
-            m_cancellation.Cancel();
+            _cancellation.Cancel();
         }
         catch (ObjectDisposedException)
         {
         }
     }
 
-    public void Dispose() => m_cancellation.Dispose();
+    /// <summary>释放定时器取消源</summary>
+    public void Dispose() => _cancellation.Dispose();
     
     /// <summary>
     /// 通知定时器完成
     /// </summary>
-    public void NotifyCompleted() => m_onCompleted?.Invoke(Handle);
+    public void NotifyCompleted() => _onCompleted?.Invoke(Handle);
 }
 
 /// <summary>
@@ -122,39 +129,56 @@ internal sealed class TimerService : IStartupService, ITimerService
 {
     #region 服务生命周期
 
+    /// <summary>服务启动顺序</summary>
     public int Priority => FrameworkSettings.TimerStartupPriority;
+    /// <summary>启动进度说明</summary>
     public string Description => "定时器服务";
+    /// <summary>启动进度权重</summary>
     public float Weight => FrameworkSettings.TimerStartupWeight;
 
+    /// <summary>绑定全局服务生命周期</summary>
     public UniTask StartAsync(StartupContext context)
     {
-        m_lifetimeToken = context.LifetimeToken;
+        if (_disposed) throw new ObjectDisposedException(nameof(TimerService));
+        _lifetimeToken = context.LifetimeToken;
         return UniTask.CompletedTask;
     }
 
+    /// <summary>停止所有尚未结束的定时器</summary>
     public void Dispose()
     {
-        var handles = new List<TimerHandle>(m_instances.Keys);
+        if (_disposed) return;
+        _disposed = true;
+        var handles = new List<TimerHandle>(_instances.Keys);
         for (var i = handles.Count - 1; i >= 0; i--)
             Cancel(handles[i]);
     }
 
     #endregion
 
-    private readonly ILogger<TimerService> m_logger;
-    private readonly Dictionary<TimerHandle, TimerInstance> m_instances = new();
+    /// <summary>定时器异常记录器</summary>
+    private readonly ILogger<TimerService> _logger;
+    /// <summary>仍在运行的定时器实例</summary>
+    private readonly Dictionary<TimerHandle, TimerInstance> _instances = new();
 
-    private CancellationToken m_lifetimeToken = new(true);
-    private int m_nextHandleId;
+    /// <summary>全局服务取消令牌</summary>
+    private CancellationToken _lifetimeToken = new(true);
+    /// <summary>下一个定时器编号</summary>
+    private int _nextHandleId;
+    /// <summary>服务是否已经释放</summary>
+    private bool _disposed;
 
+    /// <summary>接收定时器日志服务</summary>
     public TimerService(ILogger<TimerService> logger)
     {
-        m_logger = logger;
+        _logger = logger;
     }
 
-    public TimerHandle Schedule(TimeSpan delay, DelayType delayType, Action callback, CancellationToken cancellationToken, Action<TimerHandle> onCompleted = null)
+    /// <summary>创建一次性定时器并返回可释放句柄</summary>
+    public TimerHandle Schedule(TimeSpan delay, DelayType delayType, Action callback, CancellationToken cancellationToken = default, Action<TimerHandle> onCompleted = null)
     {
-        m_lifetimeToken.ThrowIfCancellationRequested();
+        if (_disposed) throw new ObjectDisposedException(nameof(TimerService));
+        _lifetimeToken.ThrowIfCancellationRequested();
         cancellationToken.ThrowIfCancellationRequested();
         
         if (delay < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(delay), delay, "定时器延迟不能小于零");
@@ -167,9 +191,11 @@ internal sealed class TimerService : IStartupService, ITimerService
         return instance.Handle;
     }
 
-    public TimerHandle ScheduleRepeating(TimeSpan interval, DelayType delayType, Action callback, CancellationToken cancellationToken, Action<TimerHandle> onCompleted = null)
+    /// <summary>创建循环定时器并返回可释放句柄</summary>
+    public TimerHandle ScheduleRepeating(TimeSpan interval, DelayType delayType, Action callback, CancellationToken cancellationToken = default, Action<TimerHandle> onCompleted = null)
     {
-        m_lifetimeToken.ThrowIfCancellationRequested();
+        if (_disposed) throw new ObjectDisposedException(nameof(TimerService));
+        _lifetimeToken.ThrowIfCancellationRequested();
         if (interval <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(interval), interval, "循环定时器间隔必须大于零");
         if (callback == null) throw new ArgumentNullException(nameof(callback));
         cancellationToken.ThrowIfCancellationRequested();
@@ -186,10 +212,11 @@ internal sealed class TimerService : IStartupService, ITimerService
     /// </summary>
     private TimerInstance CreateInstance(CancellationToken cancellationToken, Action<TimerHandle> onCompleted)
     {
-        var handle = new TimerHandle(checked(++m_nextHandleId));
-        var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(m_lifetimeToken, cancellationToken);
+        TimerHandle handle = null;
+        handle = new TimerHandle(checked(++_nextHandleId), () => Cancel(handle));
+        var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeToken, cancellationToken);
         var instance = new TimerInstance(handle, linkedCancellation, onCompleted);
-        m_instances.Add(handle, instance);
+        _instances.Add(handle, instance);
         return instance;
     }
     
@@ -209,7 +236,7 @@ internal sealed class TimerService : IStartupService, ITimerService
         }
         catch (Exception exception)
         {
-            m_logger.Error("定时器回调执行异常", exception);
+            _logger.Error("定时器回调执行异常", exception);
         }
         finally
         {
@@ -236,7 +263,7 @@ internal sealed class TimerService : IStartupService, ITimerService
         }
         catch (Exception exception)
         {
-            m_logger.Error("循环定时器回调执行异常", exception);
+            _logger.Error("循环定时器回调执行异常", exception);
         }
         finally
         {
@@ -244,12 +271,14 @@ internal sealed class TimerService : IStartupService, ITimerService
         }
     }
 
+    /// <summary>请求取消指定定时器</summary>
     public void Cancel(TimerHandle handle)
     {
-        if (!m_instances.TryGetValue(handle, out var instance))
+        if (handle == null || !_instances.TryGetValue(handle, out var instance))
             return;
 
         instance.Cancel();
+        handle.Dispose();
     }
 
     /// <summary>
@@ -257,10 +286,11 @@ internal sealed class TimerService : IStartupService, ITimerService
     /// </summary>
     private void DisposeTimer(TimerInstance instance)
     {
-        if (!m_instances.Remove(instance.Handle))
+        if (!_instances.Remove(instance.Handle))
             return;
 
         instance.Dispose();
+        instance.Handle.Dispose();
 
         try
         {
@@ -268,12 +298,12 @@ internal sealed class TimerService : IStartupService, ITimerService
         }
         catch (Exception exception)
         {
-            m_logger.Error("定时器完成通知执行异常", exception);
+            _logger.Error("定时器完成通知执行异常", exception);
         }
     }
     
     /// <summary>
     /// 检查定时器是否正在运行
     /// </summary>
-    public bool IsActive(TimerHandle handle) => m_instances.TryGetValue(handle, out var instance) && !instance.IsCancellationRequested;
+    public bool IsActive(TimerHandle handle) => !_disposed && handle != null && handle.IsValid && _instances.TryGetValue(handle, out var instance) && !instance.IsCancellationRequested;
 }

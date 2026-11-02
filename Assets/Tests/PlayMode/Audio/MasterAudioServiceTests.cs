@@ -168,6 +168,8 @@ public sealed class MasterAudioServiceTests
         yield return StartAudio();
         AddTestAudio();
         Assert.That(_audio.PlayMusic("AudioTestMusic"), Is.True);
+        // 先确认音乐已经开始播放 再验证重复启动不会中断播放
+        yield return WaitForMusic(PlaylistController.InstanceByName("FrameworkMusic"));
         var existing = MasterAudio.SafeInstance;
         var duplicate = (IStartupService)Activator.CreateInstance(_audio.GetType(), _settings, _resources, _events);
         var startup = duplicate.StartAsync(new StartupContext(CancellationToken.None, null)).AsTask();
