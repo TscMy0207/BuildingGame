@@ -11,7 +11,8 @@ internal interface IResourcesPackageManager
 /// <summary>
 /// 资源包初始化流程管理器
 /// </summary>
-internal sealed class ResourcesPackageManager : IResourcesPackageManager
+[AutoRegister(typeof(IResourcesPackageManager), AsSelf = false)]
+internal class ResourcesPackageManager : ISystem, IResourcesPackageManager
 {
     private readonly ILogger<ResourcesPackageManager> m_logger;
     private readonly ResourcesPackageOptionsFactory m_optionsFactory;
@@ -44,7 +45,7 @@ internal sealed class ResourcesPackageManager : IResourcesPackageManager
     {
         var package = await InitializePackageAsync(packageName);
         var version = await RequestPackageVersionAsync(package);
-        m_logger.Info($"{package.PackageName}资源包版本:{version}");
+        m_logger.Log($"{package.PackageName}资源包版本:{version}");
         await LoadPackageManifestAsync(package, version);
         return package;
     }

@@ -5,7 +5,8 @@ using Cysharp.Threading.Tasks;
 /// <summary>
 /// 配置表总服务
 /// </summary>
-internal sealed class ConfigTableService : IStartupService
+[AutoRegister(typeof(IStartupService), AsSelf = false)]
+internal class ConfigTableService : ISystem, IStartupService
 {
     private readonly IReadOnlyList<IConfigTableSubService> m_subServices;
     private readonly ILogger<ConfigTableService> m_logger;

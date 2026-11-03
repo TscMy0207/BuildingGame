@@ -125,7 +125,8 @@ internal sealed class TimerInstance : IDisposable
 /// <summary>
 /// 定时器服务实现
 /// </summary>
-internal sealed class TimerService : IStartupService, ITimerService
+[AutoRegister(typeof(ITimerService), typeof(IStartupService), AsSelf = false)]
+internal class TimerService : ISystem, IStartupService, ITimerService
 {
     #region 服务生命周期
 

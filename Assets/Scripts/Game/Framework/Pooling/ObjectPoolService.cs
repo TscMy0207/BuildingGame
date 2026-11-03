@@ -11,7 +11,8 @@ using Object = UnityEngine.Object;
 /// <summary>
 /// 使用Unity内置池管理预制体实例及其资源引用 每个实例只在创建时注入依赖
 /// </summary>
-internal sealed class ObjectPoolService : IObjectPoolService, IStartupService
+[AutoRegister(typeof(IObjectPoolService), typeof(IStartupService), AsSelf = false)]
+internal class ObjectPoolService : ISystem, IObjectPoolService, IStartupService
 {
     /// <summary>当前容器的资源加载服务</summary>
     private readonly IResourcesAssetLoader _resources;

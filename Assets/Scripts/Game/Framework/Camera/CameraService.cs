@@ -10,7 +10,8 @@ using UnityEngine.SceneManagement;
 /// 通过Cinemachine提供镜头注册 切换 目标设置和震动 并管理场景引用生命周期
 /// 仅借用宿主及镜头 不创建或销毁场景资源
 /// </summary>
-internal sealed class CameraService : ICameraService, IStartupService
+[AutoRegister(typeof(ICameraService), typeof(IStartupService), AsSelf = false)]
+internal class CameraService : ISystem, ICameraService, IStartupService
 {
     /// <summary>当前宿主下由服务接管的镜头及原始状态</summary>
     private readonly Dictionary<string, CameraState> _cameras = new(StringComparer.Ordinal);

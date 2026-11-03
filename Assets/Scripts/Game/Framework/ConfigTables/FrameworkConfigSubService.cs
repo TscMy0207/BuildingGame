@@ -24,7 +24,8 @@ public interface IFrameworkConfigTableService
 /// <summary>
 /// 加载Luban框架配置并为UI系统提供类型明确的访问接口
 /// </summary>
-internal sealed class FrameworkConfigSubService : ConfigTableSubServiceBase<FrameworkTables>, IFrameworkConfigTableService
+[AutoRegister(typeof(IFrameworkConfigTableService), typeof(IConfigTableSubService), AsSelf = false)]
+internal class FrameworkConfigSubService : ConfigTableSubServiceBase<FrameworkTables>, IFrameworkConfigTableService, ISystem
 {
     /// <summary>
     /// 创建框架配置子服务

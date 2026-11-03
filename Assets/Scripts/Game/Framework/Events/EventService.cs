@@ -33,7 +33,8 @@ public interface IEventService
 /// <summary>
 /// 基于MessagePipe实现全局事件发布与订阅
 /// </summary>
-internal sealed class EventService : IStartupService, IEventService
+[AutoRegister(typeof(IEventService), typeof(IStartupService), AsSelf = false)]
+internal class EventService : ISystem, IStartupService, IEventService
 {
     /// <summary>
     /// 事件回调异常日志记录器

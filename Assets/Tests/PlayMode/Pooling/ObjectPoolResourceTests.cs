@@ -27,7 +27,7 @@ public sealed class ObjectPoolResourceTests
     public IEnumerator PrewarmAndClearThroughYooAsset()
     {
         var builder = new ContainerBuilder();
-        FrameworkComposition.RegisterDefaults(builder);
+        GameComposition.RegisterDefaults(builder);
         _container = builder.Build();
         _resources = _container.Resolve<IResourcesService>();
         _pool = _container.Resolve<IObjectPoolService>();

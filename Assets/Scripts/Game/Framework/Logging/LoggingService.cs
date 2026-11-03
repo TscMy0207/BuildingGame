@@ -27,7 +27,8 @@ internal interface ILoggingService
 /// <summary>
 /// 管理ZLogger控制台和滚动文件输出 退出时排空文件队列并释放资源
 /// </summary>
-internal sealed class LoggingService : IStartupService, ILoggingService
+[AutoRegister(typeof(ILoggingService), typeof(IStartupService), AsSelf = false)]
+internal class LoggingService : ISystem, IStartupService, ILoggingService
 {
     /// <summary>
     /// 避免ZLogger控制台输出和内部诊断再次被Unity日志回调收集

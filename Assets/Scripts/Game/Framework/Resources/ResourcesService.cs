@@ -41,7 +41,8 @@ public interface IResourcesService : IResourcesAssetLoader
 /// <summary>
 /// 资源管理服务
 /// </summary>
-internal sealed class ResourcesService : IStartupService, IResourcesService
+[AutoRegister(typeof(IResourcesService), typeof(IResourcesAssetLoader), typeof(IStartupService), AsSelf = false)]
+internal class ResourcesService : ISystem, IStartupService, IResourcesService
 {
     /// <summary>
     /// 移除资源包名前缀 将剩余地址直接交给YooAsset解析

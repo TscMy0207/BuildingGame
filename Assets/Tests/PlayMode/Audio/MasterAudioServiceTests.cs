@@ -40,7 +40,7 @@ public sealed class MasterAudioServiceTests
     public IEnumerator SetUp()
     {
         var builder = new ContainerBuilder();
-        FrameworkComposition.RegisterDefaults(builder);
+        GameComposition.RegisterDefaults(builder);
         _container = builder.Build();
         _resources = _container.Resolve<IResourcesService>();
         _events = _container.Resolve<IEventService>();

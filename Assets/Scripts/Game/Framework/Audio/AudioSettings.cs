@@ -73,7 +73,8 @@ public interface IAudioSettings
 /// <summary>
 /// 统一保存音频设置并通过Framework事件通知播放服务
 /// </summary>
-internal sealed class AudioSettingsSaveDataHandler : ISaveDataHandler, ILegacyJsonSaveDataHandler, IAudioSettings
+[AutoRegister(typeof(ISaveDataHandler), typeof(IAudioSettings), AsSelf = false)]
+internal class AudioSettingsSaveDataHandler : ISystem, ISaveDataHandler, ILegacyJsonSaveDataHandler, IAudioSettings
 {
     /// <summary>
     /// 音频存档数据段标识

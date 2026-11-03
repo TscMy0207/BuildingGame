@@ -22,7 +22,8 @@ public interface IUIService
 }
 
 /// <summary>持有全局UI根节点并管理已打开面板</summary>
-internal sealed class UIService : IStartupService, IUIService
+[AutoRegister(typeof(IUIService), typeof(IStartupService), AsSelf = false)]
+internal class UIService : ISystem, IStartupService, IUIService
 {
     /// <summary>UI服务的资源加载入口</summary>
     private readonly IResourcesService _resources;

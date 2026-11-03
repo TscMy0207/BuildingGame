@@ -4,7 +4,8 @@ using YooAsset;
 /// <summary>
 /// 资源包初始化参数构建器
 /// </summary>
-internal sealed class ResourcesPackageOptionsFactory
+[AutoRegister]
+internal class ResourcesPackageOptionsFactory : ISystem
 {
     public InitializePackageOptions Create(string packageName)
     {

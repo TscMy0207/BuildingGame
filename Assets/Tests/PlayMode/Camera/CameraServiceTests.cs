@@ -33,7 +33,7 @@ public sealed class CameraServiceTests
     public void SetUp()
     {
         var builder = new ContainerBuilder();
-        FrameworkComposition.RegisterDefaults(builder);
+        GameComposition.RegisterDefaults(builder);
         _container = builder.Build();
         _service = _container.Resolve<ICameraService>();
         ((IStartupService)_service).StartAsync(new StartupContext(CancellationToken.None, null)).GetAwaiter().GetResult();
@@ -161,7 +161,7 @@ public sealed class CameraServiceTests
     public void DuplicateServiceCannotTakeAnOwnedHost()
     {
         var builder = new ContainerBuilder();
-        FrameworkComposition.RegisterDefaults(builder);
+        GameComposition.RegisterDefaults(builder);
         using var duplicateContainer = builder.Build();
         var duplicate = duplicateContainer.Resolve<ICameraService>();
         ((IStartupService)duplicate).StartAsync(new StartupContext(CancellationToken.None, null)).GetAwaiter().GetResult();

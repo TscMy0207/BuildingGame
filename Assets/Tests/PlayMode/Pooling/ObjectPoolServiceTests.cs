@@ -41,7 +41,7 @@ public sealed class ObjectPoolServiceTests
         _prefab.AddComponent<PoolProbe>();
         _loader = new CountingLoader(_prefab);
         var builder = new ContainerBuilder();
-        FrameworkComposition.RegisterDefaults(builder);
+        GameComposition.RegisterDefaults(builder);
         builder.RegisterInstance<IResourcesAssetLoader>(_loader);
         builder.RegisterInstance(new PoolProbeDependency("Root"));
         _container = builder.Build();

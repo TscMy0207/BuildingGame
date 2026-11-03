@@ -24,7 +24,7 @@
 | Assets/Plugins/Editor/DarkTonic/MasterAudio | 插件编辑器工具 |
 | Assets/Tests/PlayMode/Audio | 实际插件与YooAsset联动测试 |
 
-FrameworkComposition继续注册AudioService；资源服务和事件服务先启动，AudioService通过YooAsset加载FrameworkAudio/Assets/GameData/Audio/AudioRoot.prefab，等待Master Audio声音组与PlaylistController完成初始化后对外提供播放能力
+GameComposition通过AutoRegister特性注册AudioService；资源服务和事件服务先启动，AudioService通过YooAsset加载FrameworkAudio/Assets/GameData/Audio/AudioRoot.prefab，等待Master Audio声音组与PlaylistController完成初始化后对外提供播放能力
 
 宿主层级：
 

@@ -45,7 +45,7 @@ public sealed class LifetimeServiceTests
         _prefab.AddComponent<LifetimePanelProbe>();
         _loader = new Loader(_prefab);
         var builder = new ContainerBuilder();
-        FrameworkComposition.RegisterDefaults(builder);
+        GameComposition.RegisterDefaults(builder);
         builder.RegisterInstance<IResourcesService>(_loader);
         builder.RegisterInstance<IFrameworkConfigTableService>(new Config());
         builder.RegisterInstance(new Dependency());

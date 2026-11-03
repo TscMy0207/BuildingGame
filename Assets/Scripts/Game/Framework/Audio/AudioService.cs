@@ -39,7 +39,8 @@ public interface IAudioService
 /// <summary>
 /// 负责Master Audio宿主的资源生命周期及Framework音频设置同步
 /// </summary>
-internal sealed class AudioService : IAudioService, IStartupService
+[AutoRegister(typeof(IAudioService), typeof(IStartupService), AsSelf = false)]
+internal class AudioService : ISystem, IAudioService, IStartupService
 {
     /// <summary>
     /// YooAsset音频根预制体地址

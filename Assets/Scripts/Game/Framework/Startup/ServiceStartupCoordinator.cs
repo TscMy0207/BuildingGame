@@ -57,7 +57,8 @@ public sealed class StartupContext
 /// <summary>
 /// 基础服务生命周期管理器
 /// </summary>
-internal sealed class ServiceStartupCoordinator : IServiceStartupCoordinator, IDisposable
+[AutoRegister(typeof(IServiceStartupCoordinator), AsSelf = false)]
+internal class ServiceStartupCoordinator : ISystem, IServiceStartupCoordinator, IDisposable
 {
     private readonly IReadOnlyList<IStartupService> m_services;
     private readonly ILogger<ServiceStartupCoordinator> m_logger;
@@ -98,7 +99,7 @@ internal sealed class ServiceStartupCoordinator : IServiceStartupCoordinator, ID
     {
         if (Math.Abs(totalWeight - 1f) <= WeightEpsilon) return 1f;
         var scale = 1f / totalWeight;
-        m_logger.Info($"Weight总和为{totalWeight}已自动归一化 缩放因子:{scale:F3}");
+        m_logger.Log($"Weight总和为{totalWeight}已自动归一化 缩放因子:{scale:F3}");
         return scale;
     }
 

@@ -16,7 +16,8 @@ public sealed class CoreModuleInjectionTests
     public IEnumerator InstantiatedViewReceivesContainerOwnedSystem()
     {
         var builder = new ContainerBuilder();
-        typeof(CoreComposition).GetMethod("RegisterTypes", BindingFlags.Static | BindingFlags.NonPublic)
+        var autoRegistration = typeof(GameComposition).Assembly.GetType("AutoRegistration", true);
+        autoRegistration.GetMethod("RegisterTypes", BindingFlags.Static | BindingFlags.NonPublic)
             .Invoke(null, new object[] { builder, new[] { typeof(ProbeModel), typeof(ProbeSystem) } });
         using var container = builder.Build();
         var prefab = new GameObject("业务注入测试模板");
@@ -48,10 +49,12 @@ public sealed class CoreModuleInjectionTests
     public interface IProbeSystem { }
 
     /// <summary>运行时业务数据探针</summary>
-    public sealed class ProbeModel : ModuleModel { }
+    [AutoRegister]
+    public class ProbeModel : ModuleModel { }
 
     /// <summary>运行时业务系统探针</summary>
-    public sealed class ProbeSystem : ModuleSystem, IProbeSystem
+    [AutoRegister(typeof(IProbeSystem))]
+    public class ProbeSystem : ModuleSystem, IProbeSystem
     {
         /// <summary>注入的数据实例</summary>
         public ModuleModel Model { get; }

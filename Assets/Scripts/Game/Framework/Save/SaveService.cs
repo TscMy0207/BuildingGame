@@ -24,7 +24,8 @@ public interface ISaveService
 }
 
 /// <summary>通过Easy Save保存数据段 并兼容旧JSON及有效备份恢复</summary>
-internal sealed class SaveService : IStartupService, ISaveService
+[AutoRegister(typeof(ISaveService), typeof(IStartupService), AsSelf = false)]
+internal class SaveService : ISystem, IStartupService, ISaveService
 {
     /// <summary>框架元数据键的保留前缀</summary>
     private const string MetadataPrefix = "__framework/";

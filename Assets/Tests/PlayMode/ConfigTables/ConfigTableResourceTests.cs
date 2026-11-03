@@ -18,7 +18,7 @@ public sealed class ConfigTableResourceTests
     public IEnumerator LoadFrameworkTablesThroughYooAsset()
     {
         var builder = new ContainerBuilder();
-        FrameworkComposition.RegisterDefaults(builder);
+        GameComposition.RegisterDefaults(builder);
         using var container = builder.Build();
         var resources = container.Resolve<IResourcesService>();
         var config = container.Resolve<IFrameworkConfigTableService>();

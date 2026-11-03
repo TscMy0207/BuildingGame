@@ -26,7 +26,7 @@ public sealed class SaveServiceTests
         _directory = Path.Combine(Path.GetTempPath(), "BuildingGame.SaveTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_directory);
         var builder = new ContainerBuilder();
-        FrameworkComposition.RegisterDefaults(builder);
+        GameComposition.RegisterDefaults(builder);
         _container = builder.Build();
         ((IStartupService)_container.Resolve<IEventService>()).StartAsync(
             new StartupContext(CancellationToken.None, null)).GetAwaiter().GetResult();

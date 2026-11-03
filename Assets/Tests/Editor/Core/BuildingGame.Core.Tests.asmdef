@@ -1,6 +1,6 @@
 {
   "name": "BuildingGame.Core.Tests",
-  "references": ["Game", "VContainer", "Game.Editor"],
+  "references": ["Game", "VContainer", "Game.Editor", "UniTask"],
   "includePlatforms": ["Editor"],
   "optionalUnityReferences": ["TestAssemblies"]
 }
