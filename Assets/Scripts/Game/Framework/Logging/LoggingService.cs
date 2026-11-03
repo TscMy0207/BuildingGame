@@ -1,12 +1,15 @@
 using System;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using ZLogger;
 using ZLogger.Providers;
-using ZLogger.Unity;
+using Debug = UnityEngine.Debug;
 
 /// <summary>
 /// 日志适配接口 为框架日志提供分类输出
@@ -37,10 +40,6 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
     private readonly object _sync = new();
 
     /// <summary>
-    /// 独立的控制台和文件工厂 分别控制格式
-    /// </summary>
-    private readonly ILoggerFactory _consoleFactory;
-    /// <summary>
     /// 负责滚动文件输出并在释放时排空后台队列的日志工厂
     /// </summary>
     private readonly ILoggerFactory _fileFactory;
@@ -66,42 +65,30 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
     /// <summary>
     /// 创建输出目标 使日志在其他服务启动前即可使用
     /// </summary>
-    public LoggingService()
+    [VContainer.Inject]
+    public LoggingService() : this(Path.Combine(Application.persistentDataPath, "Logs")) { }
+
+    /// <summary>
+    /// 使用独立目录创建日志输出 供隔离验证使用
+    /// </summary>
+    private LoggingService(string directory)
     {
-        _directory = Path.Combine(Application.persistentDataPath, "Logs");
+        _directory = directory;
         _sessionName = $"BuildingGame-{DateTime.UtcNow:yyyyMMdd-HHmmss-fffffff}-{Guid.NewGuid():N}";
-        _consoleFactory = LoggerFactory.Create(builder =>
+        _fileFactory = LoggerFactory.Create(builder =>
         {
-            // 底层不设最低等级 输出分流由Write按LogType决定
             builder.SetMinimumLevel(LogLevel.Trace);
-            builder.AddZLoggerUnityDebug(options =>
+            builder.AddZLoggerRollingFile(options =>
             {
-                options.PrettyStacktrace = false;
-                ConfigureFormatter(options);
+                options.FilePathSelector = SelectLogFile;
+                // 此版本使用按日检查点才能在大小滚动时持续递增序号
+                options.RollingInterval = RollingInterval.Day;
+                options.RollingSizeKB = FrameworkSettings.LoggingMaxFileSizeMb * 1024;
+                options.InternalErrorLogger = ReportInternalError;
+                // 消息和诊断已统一准备 不再追加前后缀或重复格式化异常
+                options.UsePlainTextFormatter();
             });
         });
-
-        try
-        {
-            _fileFactory = LoggerFactory.Create(builder =>
-            {
-                builder.SetMinimumLevel(LogLevel.Trace);
-                builder.AddZLoggerRollingFile(options =>
-                {
-                    options.FilePathSelector = SelectLogFile;
-                    // 此版本使用按日检查点才能在大小滚动时持续递增序号
-                    options.RollingInterval = RollingInterval.Day;
-                    options.RollingSizeKB = FrameworkSettings.LoggingMaxFileSizeMb * 1024;
-                    options.InternalErrorLogger = ReportInternalError;
-                    ConfigureFormatter(options);
-                });
-            });
-        }
-        catch
-        {
-            _consoleFactory.Dispose();
-            throw;
-        }
 
         _unityLogger = _fileFactory.CreateLogger("Unity");
         Application.logMessageReceivedThreaded += HandleUnityLog;
@@ -140,14 +127,7 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
             if (Interlocked.Exchange(ref _isDisposed, 1) != 0) return;
             Application.logMessageReceivedThreaded -= HandleUnityLog;
             Application.quitting -= Dispose;
-            try
-            {
-                _fileFactory.Dispose();
-            }
-            finally
-            {
-                _consoleFactory.Dispose();
-            }
+            _fileFactory.Dispose();
         }
     }
 
@@ -162,20 +142,18 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
         {
             if (Volatile.Read(ref _isDisposed) != 0) return;
 
-            var logLevel = ToLogLevel(type);
+            var diagnostics = PrepareDiagnostics(type, exception, callerFile, callerLine);
+            var entry = FormatEntry(category, type, message, diagnostics);
             if (type != LogType.Log)
-                _fileFactory.CreateLogger(category).ZLog(logLevel, exception, $"{message}", filePath: callerFile, lineNumber: callerLine);
+                _fileFactory.CreateLogger(category).ZLog(ToLogLevel(type), $"{entry}", filePath: callerFile, lineNumber: callerLine);
 
             var wasForwarding = t_isForwarding;
             t_isForwarding = true;
             try
             {
-                var logger = _consoleFactory.CreateLogger(category);
-                // Unity提供器遇到Exception会只打印异常 因此在控制台消息中保留完整上下文
-                if (exception == null)
-                    logger.ZLog(logLevel, $"{message}", filePath: callerFile, lineNumber: callerLine);
-                else
-                    logger.ZLog(logLevel, $"{message}\n异常信息:{exception}", filePath: callerFile, lineNumber: callerLine);
+                // 直接输出已准备的文本 不启用PrettyStacktrace或Unity自动堆栈采集
+                var consoleType = type == LogType.Log ? LogType.Log : type == LogType.Warning ? LogType.Warning : LogType.Error;
+                Debug.LogFormat(consoleType, LogOption.NoStacktrace, null, "{0}", entry);
             }
             finally
             {
@@ -185,18 +163,99 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
     }
 
     /// <summary>
-    /// 统一输出中文标签以及日志时间 分类 等级和原始调用位置
+    /// 一次性准备诊断文本 异常使用原始信息 普通日志不采集调用堆栈
     /// </summary>
-    private static void ConfigureFormatter(ZLoggerOptions options)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static string PrepareDiagnostics(LogType type, Exception exception, string callerFile, int callerLine)
     {
-        options.UsePlainTextFormatter(formatter =>
+        if (exception != null)
         {
-            formatter.SetPrefixFormatter($"时间:[{0}] 模块:[{1}] 等级:[{2}] ",
-                (in MessageTemplate template, in LogInfo info) =>
-                    template.Format(info.Timestamp, info.Category, GetLevelName(info.LogLevel)));
-            formatter.SetSuffixFormatter($" 调用位置:[{0}:{1}]",
-                (in MessageTemplate template, in LogInfo info) => template.Format(info.FilePath, info.LineNumber));
-        });
+            var diagnostics = exception.ToString();
+            if (string.IsNullOrWhiteSpace(exception.StackTrace) && exception.InnerException == null)
+                diagnostics += "\n异常堆栈不可用（异常未抛出或运行时未提供）";
+            else if (!HasExceptionSourceLocation(exception))
+                diagnostics += "\n异常源码行号不可用，以上为异常保留的运行时信息";
+            return AppendCallerLocation(diagnostics, "记录位置", callerFile, callerLine);
+        }
+
+        if (type == LogType.Log)
+            return AppendCallerLocation("", "调用位置", callerFile, callerLine);
+
+        return FormatCallStack(new StackTrace(1, true), callerFile, callerLine);
+    }
+
+    /// <summary>
+    /// 保留运行时实际提供的堆栈 缺少源码信息时明确说明并补充编译期调用位置
+    /// </summary>
+    private static string FormatCallStack(StackTrace stack, string callerFile, int callerLine)
+    {
+        var diagnostics = stack.ToString().TrimEnd();
+        if (string.IsNullOrWhiteSpace(diagnostics))
+            diagnostics = "调用堆栈不可用";
+        else if (!HasSourceLocation(stack, null, 0))
+            diagnostics += "\n堆栈源码行号不可用，以上为运行时可用的调用信息";
+
+        if (!HasSourceLocation(stack, callerFile, callerLine) || string.IsNullOrEmpty(callerFile) || callerLine <= 0)
+            diagnostics = AppendCallerLocation(diagnostics, "调用位置", callerFile, callerLine);
+        return diagnostics;
+    }
+
+    /// <summary>
+    /// 检查异常自身与内部异常保留的源码位置 不将内部异常误判为没有堆栈
+    /// </summary>
+    private static bool HasExceptionSourceLocation(Exception exception)
+    {
+        if (HasSourceLocation(new StackTrace(exception, true), null, 0)) return true;
+        if (exception is AggregateException aggregate)
+        {
+            foreach (var inner in aggregate.InnerExceptions)
+                if (HasExceptionSourceLocation(inner)) return true;
+            return false;
+        }
+        return exception.InnerException != null && HasExceptionSourceLocation(exception.InnerException);
+    }
+
+    /// <summary>
+    /// 判断堆栈是否含有效源码行号 指定调用位置时同时核对路径与行号
+    /// </summary>
+    private static bool HasSourceLocation(StackTrace stack, string callerFile, int callerLine)
+    {
+        var frames = stack.GetFrames();
+        if (frames == null) return false;
+        foreach (var frame in frames)
+        {
+            var file = frame.GetFileName();
+            var line = frame.GetFileLineNumber();
+            if (string.IsNullOrEmpty(file) || line <= 0) continue;
+            if (callerFile == null) return true;
+            // 只统一分隔符 不折叠大小写 避免在区分大小写的平台误判为同一路径
+            if (line == callerLine && string.Equals(file.Replace('\\', '/'), callerFile.Replace('\\', '/'), StringComparison.Ordinal))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 补充编译期调用位置 未提供位置时明确标记 不伪造文件或行号
+    /// </summary>
+    private static string AppendCallerLocation(string diagnostics, string label, string callerFile, int callerLine)
+    {
+        var separator = string.IsNullOrEmpty(diagnostics) ? "" : "\n";
+        if (string.IsNullOrEmpty(callerFile))
+            return diagnostics + separator + label + "不可用（未提供编译期调用位置）";
+        if (callerLine <= 0)
+            return diagnostics + separator + label + "（编译期）: " + callerFile + "（行号不可用）";
+        return diagnostics + separator + label + "（编译期）: " + callerFile + ":" + callerLine;
+    }
+
+    /// <summary>
+    /// 统一时间 中文等级 模块和消息 两个输出目标复用完整文本
+    /// </summary>
+    private static string FormatEntry(string category, LogType type, string message, string diagnostics)
+    {
+        var timestamp = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss.fff zzz", CultureInfo.InvariantCulture);
+        var entry = $"[{timestamp}] [{GetLevelName(ToLogLevel(type))}] [{category}] {message}";
+        return string.IsNullOrEmpty(diagnostics) ? entry : entry + "\n" + diagnostics;
     }
 
     /// <summary>
@@ -238,7 +297,10 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
         lock (_sync)
         {
             if (_isDisposed != 0) return;
-            _unityLogger.ZLog(ToLogLevel(type), $"{message}\n{stackTrace}", filePath: "", lineNumber: 0);
+            // 仅沿用回调提供的堆栈 不重新采集或补造调用位置
+            var diagnostics = string.IsNullOrWhiteSpace(stackTrace) ? "Unity未提供调用堆栈" : stackTrace;
+            var entry = FormatEntry("Unity", type, message, diagnostics);
+            _unityLogger.ZLog(ToLogLevel(type), $"{entry}", filePath: "", lineNumber: 0);
         }
     }
 
