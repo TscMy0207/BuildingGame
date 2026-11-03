@@ -15,12 +15,20 @@ internal class SaveServiceTestReports : ICallbacks
     private static readonly TestRunnerApi s_api;
 
     /// <summary>
+    /// 当前编辑器域注册的结果监听器 用于卸载时精确解除订阅
+    /// </summary>
+    private static readonly SaveServiceTestReports s_callbacks;
+
+    /// <summary>
     /// 每次域加载后重新注册测试结果监听
     /// </summary>
     static SaveServiceTestReports()
     {
         s_api = ScriptableObject.CreateInstance<TestRunnerApi>();
-        s_api.RegisterCallbacks(new SaveServiceTestReports());
+        s_callbacks = new SaveServiceTestReports();
+        s_api.RegisterCallbacks(s_callbacks);
+        AssemblyReloadEvents.beforeAssemblyReload += Release;
+        EditorApplication.quitting += Release;
     }
 
     /// <summary>
@@ -58,4 +66,16 @@ internal class SaveServiceTestReports : ICallbacks
     private static bool ContainsSaveTests(ITestResultAdaptor result) =>
         result.Name == "BuildingGame.Save.Tests.dll" || result.Name == "BuildingGame.Save.Tests" ||
         result.HasChildren && result.Children.Any(ContainsSaveTests);
+
+    /// <summary>
+    /// 在域重载或编辑器退出前解除监听并销毁持有的测试API
+    /// </summary>
+    private static void Release()
+    {
+        AssemblyReloadEvents.beforeAssemblyReload -= Release;
+        EditorApplication.quitting -= Release;
+        if (s_api == null) return;
+        s_api.UnregisterCallbacks(s_callbacks);
+        UnityEngine.Object.DestroyImmediate(s_api);
+    }
 }

@@ -15,12 +15,20 @@ internal class ConfigTableTestReports : ICallbacks
     private static readonly TestRunnerApi s_api;
 
     /// <summary>
+    /// 当前编辑器域注册的结果监听器 用于卸载时精确解除订阅
+    /// </summary>
+    private static readonly ConfigTableTestReports s_callbacks;
+
+    /// <summary>
     /// 每次编辑器域加载时重新注册结果回调
     /// </summary>
     static ConfigTableTestReports()
     {
         s_api = ScriptableObject.CreateInstance<TestRunnerApi>();
-        s_api.RegisterCallbacks(new ConfigTableTestReports());
+        s_callbacks = new ConfigTableTestReports();
+        s_api.RegisterCallbacks(s_callbacks);
+        AssemblyReloadEvents.beforeAssemblyReload += Release;
+        EditorApplication.quitting += Release;
     }
 
     /// <summary>
@@ -62,4 +70,16 @@ internal class ConfigTableTestReports : ICallbacks
     private static bool ContainsAssembly(ITestResultAdaptor result, string assemblyName) =>
         result.Name == assemblyName + ".dll" || result.Name == assemblyName ||
         result.HasChildren && result.Children.Any(child => ContainsAssembly(child, assemblyName));
+
+    /// <summary>
+    /// 在域重载或编辑器退出前解除监听并销毁持有的测试API
+    /// </summary>
+    private static void Release()
+    {
+        AssemblyReloadEvents.beforeAssemblyReload -= Release;
+        EditorApplication.quitting -= Release;
+        if (s_api == null) return;
+        s_api.UnregisterCallbacks(s_callbacks);
+        UnityEngine.Object.DestroyImmediate(s_api);
+    }
 }

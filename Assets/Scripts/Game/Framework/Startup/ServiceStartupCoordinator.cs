@@ -66,19 +66,19 @@ internal class ServiceStartupCoordinator : ISystem, IServiceStartupCoordinator, 
     /// <summary>
     /// 按优先级稳定排序的启动服务列表 同优先级保留注册顺序
     /// </summary>
-    private readonly IReadOnlyList<IStartupService> m_services;
+    private readonly IReadOnlyList<IStartupService> _services;
     /// <summary>
     /// 记录启动失败和取消期间的清理异常
     /// </summary>
-    private readonly ILogger<ServiceStartupCoordinator> m_logger;
+    private readonly ILogger<ServiceStartupCoordinator> _logger;
     /// <summary>
     /// 协调器拥有的取消源 在释放时取消并销毁
     /// </summary>
-    private readonly CancellationTokenSource m_lifetimeCancellation = new();
+    private readonly CancellationTokenSource _lifetimeCancellation = new();
     /// <summary>
     /// 供全部启动服务共享的协调器生命周期令牌
     /// </summary>
-    private readonly CancellationToken m_lifetimeToken;
+    private readonly CancellationToken _lifetimeToken;
 
     /// <summary>
     /// 判断启动权重总和是否近似为一的容差
@@ -88,7 +88,7 @@ internal class ServiceStartupCoordinator : ISystem, IServiceStartupCoordinator, 
     /// <summary>
     /// 将服务权重归一化为总体进度比例的缩放系数
     /// </summary>
-    private float m_weightScale;
+    private float _weightScale;
 
     /// <summary>
     /// 通知总体进度与当前启动步骤
@@ -108,9 +108,9 @@ internal class ServiceStartupCoordinator : ISystem, IServiceStartupCoordinator, 
     /// </summary>
     public ServiceStartupCoordinator(IEnumerable<IStartupService> services, ILogger<ServiceStartupCoordinator> logger)
     {
-        m_services = services.AsValueEnumerable().OrderBy(service => service.Priority).ToList();
-        m_logger = logger;
-        m_lifetimeToken = m_lifetimeCancellation.Token;
+        _services = services.AsValueEnumerable().OrderBy(service => service.Priority).ToList();
+        _logger = logger;
+        _lifetimeToken = _lifetimeCancellation.Token;
     }
 
     /// <summary>
@@ -118,13 +118,13 @@ internal class ServiceStartupCoordinator : ISystem, IServiceStartupCoordinator, 
     /// </summary>
     public async UniTask StartAsync()
     {
-        if (m_lifetimeToken.IsCancellationRequested)
+        if (_lifetimeToken.IsCancellationRequested)
             throw new ObjectDisposedException(nameof(ServiceStartupCoordinator), "基础服务管理器已释放 无法启动基础服务");
 
-        var totalWeight = m_services.AsValueEnumerable().Sum(service => service.Weight);
-        m_weightScale = ComputeWeightScale(totalWeight);
+        var totalWeight = _services.AsValueEnumerable().Sum(service => service.Weight);
+        _weightScale = ComputeWeightScale(totalWeight);
 
-        await StartServicesAsync(m_lifetimeToken);
+        await StartServicesAsync(_lifetimeToken);
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ internal class ServiceStartupCoordinator : ISystem, IServiceStartupCoordinator, 
     {
         if (Math.Abs(totalWeight - 1f) <= WeightEpsilon) return 1f;
         var scale = 1f / totalWeight;
-        m_logger.Log($"Weight总和为{totalWeight}已自动归一化 缩放因子:{scale:F3}");
+        _logger.Log($"Weight总和为{totalWeight}已自动归一化 缩放因子:{scale:F3}");
         return scale;
     }
 
@@ -146,7 +146,7 @@ internal class ServiceStartupCoordinator : ISystem, IServiceStartupCoordinator, 
     {
         var accumulated = 0f;
 
-        foreach (var service in m_services)
+        foreach (var service in _services)
         {
             lifetimeToken.ThrowIfCancellationRequested();
 
@@ -154,7 +154,7 @@ internal class ServiceStartupCoordinator : ISystem, IServiceStartupCoordinator, 
             ProgressChanged?.Invoke(accumulated, service.Description);
 
             // 服务执行时的进度
-            var normalizedWeight = service.Weight * m_weightScale;
+            var normalizedWeight = service.Weight * _weightScale;
             var tempAccumulated = accumulated;
             var context = new StartupContext(
                 lifetimeToken,
@@ -177,7 +177,7 @@ internal class ServiceStartupCoordinator : ISystem, IServiceStartupCoordinator, 
             }
             catch (Exception ex)
             {
-                m_logger.Error($"基础服务{service.Description}启动异常", ex);
+                _logger.Error($"基础服务{service.Description}启动异常", ex);
 
                 Failed?.Invoke(service.Description, ex.Message);
                 return;
@@ -196,15 +196,15 @@ internal class ServiceStartupCoordinator : ISystem, IServiceStartupCoordinator, 
     /// </summary>
     public void Dispose()
     {
-        if (m_lifetimeToken.IsCancellationRequested)
+        if (_lifetimeToken.IsCancellationRequested)
             return;
 
         try
         {
-            m_lifetimeCancellation.Cancel();
-            for (var i = m_services.Count - 1; i >= 0; i--)
+            _lifetimeCancellation.Cancel();
+            for (var i = _services.Count - 1; i >= 0; i--)
             {
-                var service = m_services[i];
+                var service = _services[i];
                 service.Dispose();
             }
 
@@ -215,11 +215,11 @@ internal class ServiceStartupCoordinator : ISystem, IServiceStartupCoordinator, 
         }
         catch (Exception exception)
         {
-            m_logger.Error("基础服务生命周期取消异常", exception);
+            _logger.Error("基础服务生命周期取消异常", exception);
         }
         finally
         {
-            m_lifetimeCancellation.Dispose();   
+            _lifetimeCancellation.Dispose();
         }
     }
 }

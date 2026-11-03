@@ -11,19 +11,19 @@ internal class ConfigTableService : ISystem, IStartupService
     /// <summary>
     /// 容器提供的全部配置子服务 由总服务统一加载和清理
     /// </summary>
-    private readonly IReadOnlyList<IConfigTableSubService> m_subServices;
+    private readonly IReadOnlyList<IConfigTableSubService> _subServices;
     /// <summary>
     /// 记录配置子服务的启动过程
     /// </summary>
-    private readonly ILogger<ConfigTableService> m_logger;
+    private readonly ILogger<ConfigTableService> _logger;
 
     /// <summary>
     /// 接收配置子服务集合和启动日志依赖
     /// </summary>
     public ConfigTableService(IReadOnlyList<IConfigTableSubService> subServices, ILogger<ConfigTableService> logger)
     {
-        m_subServices = subServices;
-        m_logger = logger;
+        _subServices = subServices;
+        _logger = logger;
     }
 
     #region 服务生命周期
@@ -46,10 +46,10 @@ internal class ConfigTableService : ISystem, IStartupService
     /// </summary>
     public async UniTask StartAsync(StartupContext context)
     {
-        foreach (var sub in m_subServices)
+        foreach (var sub in _subServices)
         {
             context.LifetimeToken.ThrowIfCancellationRequested();
-            m_logger.Log($"开始加载配置子服务{sub.Name}");
+            _logger.Log($"开始加载配置子服务{sub.Name}");
             await sub.LoadAsync(context.LifetimeToken);
         }
     }
@@ -59,7 +59,7 @@ internal class ConfigTableService : ISystem, IStartupService
     /// </summary>
     public void Dispose()
     {
-        foreach (var sub in m_subServices)
+        foreach (var sub in _subServices)
             sub.Clear();
     }
 

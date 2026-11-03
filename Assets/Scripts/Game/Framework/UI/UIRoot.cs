@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// UI全局根节点 负责暴露各个UI层级的挂载点
@@ -9,19 +10,23 @@ internal class UIRoot : MonoBehaviour
     /// <summary>
     /// 承载页面层面板实例的预制体挂载点
     /// </summary>
-    [SerializeField] private Transform m_pageRoot;
+    [FormerlySerializedAs("m_pageRoot")]
+    [SerializeField] private Transform _pageRoot;
     /// <summary>
     /// 承载弹窗层面板实例的预制体挂载点
     /// </summary>
-    [SerializeField] private Transform m_popupRoot;
+    [FormerlySerializedAs("m_popupRoot")]
+    [SerializeField] private Transform _popupRoot;
     /// <summary>
     /// 承载覆盖层面板实例的预制体挂载点
     /// </summary>
-    [SerializeField] private Transform m_overlayRoot;
+    [FormerlySerializedAs("m_overlayRoot")]
+    [SerializeField] private Transform _overlayRoot;
     /// <summary>
     /// 承载提示层面板实例的预制体挂载点
     /// </summary>
-    [SerializeField] private Transform m_toastRoot;
+    [FormerlySerializedAs("m_toastRoot")]
+    [SerializeField] private Transform _toastRoot;
 
     /// <summary>
     /// 根据面板层级获取实例挂载点
@@ -30,10 +35,10 @@ internal class UIRoot : MonoBehaviour
     {
         var root = layer switch
         {
-            UIPanelLayer.Page => m_pageRoot,
-            UIPanelLayer.Popup => m_popupRoot,
-            UIPanelLayer.Overlay => m_overlayRoot,
-            UIPanelLayer.Toast => m_toastRoot,
+            UIPanelLayer.Page => _pageRoot,
+            UIPanelLayer.Popup => _popupRoot,
+            UIPanelLayer.Overlay => _overlayRoot,
+            UIPanelLayer.Toast => _toastRoot,
             _ => throw new ArgumentOutOfRangeException(nameof(layer), layer, null)
         };
 

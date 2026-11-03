@@ -54,20 +54,20 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
     /// <summary>
     /// 负责本地资源包初始化与清单加载的依赖
     /// </summary>
-    private readonly IResourcesPackageManager m_packageManager;
+    private readonly IResourcesPackageManager _packageManager;
     /// <summary>
     /// 记录资源加载与释放异常
     /// </summary>
-    private readonly ILogger<ResourcesService> m_logger;
+    private readonly ILogger<ResourcesService> _logger;
     /// <summary>
     /// 资源服务生命周期结束时中断尚未完成的加载
     /// </summary>
-    private CancellationToken m_lifetimeToken;
+    private CancellationToken _lifetimeToken;
 
     /// <summary>
     /// 正在加载中的资源 记录加载任务与等待者数量
     /// </summary>
-    private readonly Dictionary<ResourceKey, PendingLoad> m_loadingTasks = new();
+    private readonly Dictionary<ResourceKey, PendingLoad> _loadingTasks = new();
 
     /// <summary>
     /// 以路径和资源类型唯一标识一次加载
@@ -133,15 +133,15 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
     /// <summary>
     /// 已加载的资源缓存 记录资源句柄与引用计数
     /// </summary>
-    private readonly Dictionary<ResourceKey, (AssetHandle handle, int refCount)> m_cachedAssets = new();
+    private readonly Dictionary<ResourceKey, (AssetHandle handle, int refCount)> _cachedAssets = new();
 
     /// <summary>
     /// 接收资源包初始化入口和资源日志依赖
     /// </summary>
     public ResourcesService(IResourcesPackageManager packageManager, ILogger<ResourcesService> logger)
     {
-        m_packageManager = packageManager;
-        m_logger = logger;
+        _packageManager = packageManager;
+        _logger = logger;
     }
 
     #region 服务生命周期
@@ -164,10 +164,10 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
     /// </summary>
     public async UniTask StartAsync(StartupContext context)
     {
-        m_lifetimeToken = context.LifetimeToken;
+        _lifetimeToken = context.LifetimeToken;
         context.LifetimeToken.ThrowIfCancellationRequested();
         YooAssets.Initialize();
-        await m_packageManager.InitializeLocalPackagesAsync(context);
+        await _packageManager.InitializeLocalPackagesAsync(context);
         context.LifetimeToken.ThrowIfCancellationRequested();
     }
 
@@ -176,7 +176,7 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
     /// </summary>
     public void Dispose()
     {
-        foreach (var pair in m_cachedAssets)
+        foreach (var pair in _cachedAssets)
         {
             try
             {
@@ -184,14 +184,14 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
             }
             catch (Exception e)
             {
-                m_logger.Error($"释放资源{pair.Key}失败", e);
+                _logger.Error($"释放资源{pair.Key}失败", e);
             }
         }
 
-        m_cachedAssets.Clear();
-        foreach (PendingLoad pending in m_loadingTasks.Values)
+        _cachedAssets.Clear();
+        foreach (PendingLoad pending in _loadingTasks.Values)
             pending.Completion.TrySetCanceled(new CancellationToken(true));
-        m_loadingTasks.Clear();
+        _loadingTasks.Clear();
     }
 
     #endregion
@@ -204,27 +204,27 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
     /// <returns>异步任务</returns>
     public async UniTask<T> LoadAssetAsync<T>(string location) where T : UnityEngine.Object
     {
-        m_lifetimeToken.ThrowIfCancellationRequested();
+        _lifetimeToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(location))
             throw new ArgumentException("资源路径不能为空", nameof(location));
 
         ResourceKey key = new ResourceKey(location, typeof(T));
 
-        if (m_cachedAssets.TryGetValue(key, out var cached))
+        if (_cachedAssets.TryGetValue(key, out var cached))
         {
             var asset = CastAsset<T>(cached.handle, key);
-            m_cachedAssets[key] = (cached.handle, cached.refCount + 1);
+            _cachedAssets[key] = (cached.handle, cached.refCount + 1);
             return asset;
         }
 
-        if (m_loadingTasks.TryGetValue(key, out var pending))
+        if (_loadingTasks.TryGetValue(key, out var pending))
         {
             pending.Waiters++;
         }
         else
         {
             pending = new PendingLoad();
-            m_loadingTasks.Add(key, pending);
+            _loadingTasks.Add(key, pending);
             LoadPendingAssetAsync<T>(key, pending).Forget();
         }
 
@@ -253,21 +253,21 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
         {
             var package = ResolvePackageByLocation(key.Location);
             handle = package.LoadAssetAsync<T>(GetAssetLocation(key.Location));
-            await handle.WithCancellation(m_lifetimeToken);
-            m_lifetimeToken.ThrowIfCancellationRequested();
+            await handle.WithCancellation(_lifetimeToken);
+            _lifetimeToken.ThrowIfCancellationRequested();
             if (handle.Status != EOperationStatus.Succeeded || handle.AssetObject == null)
                 throw new InvalidOperationException($"加载资源失败 路径:{key.Location} 类型:{key.AssetType.Name} 错误:{handle.Error}");
 
             CastAsset<T>(handle, key);
-            m_loadingTasks.Remove(key);
-            m_cachedAssets.Add(key, (handle, pending.Waiters));
+            _loadingTasks.Remove(key);
+            _cachedAssets.Add(key, (handle, pending.Waiters));
             var loadedHandle = handle;
             handle = null;
             pending.Completion.TrySetResult(loadedHandle);
         }
         catch (Exception exception)
         {
-            m_loadingTasks.Remove(key);
+            _loadingTasks.Remove(key);
             handle?.Release();
             if (exception is OperationCanceledException)
                 pending.Completion.TrySetCanceled(new CancellationToken(true));
@@ -316,24 +316,24 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
             throw new ArgumentNullException(nameof(assetType));
 
         ResourceKey key = new ResourceKey(location, assetType);
-        if (!m_cachedAssets.TryGetValue(key, out var entry))
+        if (!_cachedAssets.TryGetValue(key, out var entry))
             return;
 
         var (handle, count) = entry;
         if (count > 1)
         {
-            m_cachedAssets[key] = (handle, count - 1);
+            _cachedAssets[key] = (handle, count - 1);
             return;
         }
 
         try
         {
             handle.Release();
-            m_cachedAssets.Remove(key);
+            _cachedAssets.Remove(key);
         }
         catch (Exception e)
         {
-            m_logger.Error($"释放资源{key}失败", e);
+            _logger.Error($"释放资源{key}失败", e);
         }
     }
 
@@ -348,7 +348,7 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
         bool allowSceneActivation = true,
         uint priority = 0)
     {
-        m_lifetimeToken.ThrowIfCancellationRequested();
+        _lifetimeToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(location))
             throw new ArgumentException("场景路径不能为空", nameof(location));
 

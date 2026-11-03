@@ -23,23 +23,23 @@ internal class ResourcesPackageManager : ISystem, IResourcesPackageManager
     /// <summary>
     /// 记录资源包版本和初始化诊断信息
     /// </summary>
-    private readonly ILogger<ResourcesPackageManager> m_logger;
+    private readonly ILogger<ResourcesPackageManager> _logger;
     /// <summary>
     /// 按运行模式创建各资源包的初始化参数
     /// </summary>
-    private readonly ResourcesPackageOptionsFactory m_optionsFactory;
+    private readonly ResourcesPackageOptionsFactory _optionsFactory;
     /// <summary>
     /// 贯穿资源包初始化与清单加载的服务生命周期令牌
     /// </summary>
-    private CancellationToken m_cancellation;
+    private CancellationToken _cancellation;
 
     /// <summary>
     /// 接收资源包参数构建器和日志依赖
     /// </summary>
     public ResourcesPackageManager(ILogger<ResourcesPackageManager> logger, ResourcesPackageOptionsFactory optionsFactory)
     {
-        m_logger = logger;
-        m_optionsFactory = optionsFactory;
+        _logger = logger;
+        _optionsFactory = optionsFactory;
     }
 
     /// <summary>
@@ -47,7 +47,7 @@ internal class ResourcesPackageManager : ISystem, IResourcesPackageManager
     /// </summary>
     public async UniTask InitializeLocalPackagesAsync(StartupContext context)
     {
-        m_cancellation = context.LifetimeToken;
+        _cancellation = context.LifetimeToken;
         var progress = 0f;
         context.ReportProgress?.Invoke(progress, "初始化本地资源包");
 
@@ -69,7 +69,7 @@ internal class ResourcesPackageManager : ISystem, IResourcesPackageManager
     {
         var package = await InitializePackageAsync(packageName);
         var version = await RequestPackageVersionAsync(package);
-        m_logger.Log($"{package.PackageName}资源包版本:{version}");
+        _logger.Log($"{package.PackageName}资源包版本:{version}");
         await LoadPackageManifestAsync(package, version);
         return package;
     }
@@ -81,8 +81,8 @@ internal class ResourcesPackageManager : ISystem, IResourcesPackageManager
     {
         if (!YooAssets.TryGetPackage(packageName, out var package)) package = YooAssets.CreatePackage(packageName);
 
-        var operation = package.InitializePackageAsync(m_optionsFactory.Create(packageName));
-        await operation.WithCancellation(m_cancellation);
+        var operation = package.InitializePackageAsync(_optionsFactory.Create(packageName));
+        await operation.WithCancellation(_cancellation);
         if (operation.Status != EOperationStatus.Succeeded)
             throw new InvalidOperationException($"资源包{packageName}初始化失败:{operation.Error}");
         return package;
@@ -94,7 +94,7 @@ internal class ResourcesPackageManager : ISystem, IResourcesPackageManager
     private async UniTask<string> RequestPackageVersionAsync(ResourcePackage package)
     {
         var operation = package.RequestPackageVersionAsync();
-        await operation.WithCancellation(m_cancellation);
+        await operation.WithCancellation(_cancellation);
         if (operation.Status != EOperationStatus.Succeeded)
             throw new InvalidOperationException($"资源包{package.PackageName}请求版本失败:{operation.Error}");
         return operation.PackageVersion;
@@ -106,7 +106,7 @@ internal class ResourcesPackageManager : ISystem, IResourcesPackageManager
     private async UniTask LoadPackageManifestAsync(ResourcePackage package, string version)
     {
         var operation = package.LoadPackageManifestAsync(new LoadPackageManifestOptions(version, FrameworkSettings.ResourcesManifestLoadTimeout));
-        await operation.WithCancellation(m_cancellation);
+        await operation.WithCancellation(_cancellation);
         if (operation.Status != EOperationStatus.Succeeded)
             throw new InvalidOperationException($"资源包{package.PackageName}加载清单失败:{operation.Error}");
     }

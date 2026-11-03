@@ -40,12 +40,12 @@ public class ObjectPoolResourceTests
         var context = new StartupContext(CancellationToken.None, null);
         yield return Await(((IStartupService)_resources).StartAsync(context).AsTask());
         yield return Await(((IStartupService)_pool).StartAsync(context).AsTask());
-        const string location = "FrameworkAudio/Assets/GameData/Audio/AudioRoot.prefab";
-        yield return Await(_pool.PrewarmAsync(location, 2).AsTask());
+        const string Location = "FrameworkAudio/Assets/GameData/Audio/AudioRoot.prefab";
+        yield return Await(_pool.PrewarmAsync(Location, 2).AsTask());
         var hosts = Object.FindObjectsOfType<AudioServiceHost>(true);
         Assert.That(hosts.Length, Is.EqualTo(2));
         foreach (var host in hosts) Assert.That(host.gameObject.activeInHierarchy, Is.False);
-        yield return Await(_pool.ClearAsync(location).AsTask());
+        yield return Await(_pool.ClearAsync(Location).AsTask());
         foreach (var host in hosts) Assert.That(host == null, Is.True);
         Assert.That(Object.FindObjectsOfType<AudioServiceHost>(true), Is.Empty);
     }

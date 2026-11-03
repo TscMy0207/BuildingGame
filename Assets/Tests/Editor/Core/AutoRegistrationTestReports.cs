@@ -15,12 +15,20 @@ internal class AutoRegistrationTestReports : ICallbacks
     private static readonly TestRunnerApi s_api;
 
     /// <summary>
+    /// 当前编辑器域注册的结果监听器 用于卸载时精确解除订阅
+    /// </summary>
+    private static readonly AutoRegistrationTestReports s_callbacks;
+
+    /// <summary>
     /// 域加载后注册测试结果监听
     /// </summary>
     static AutoRegistrationTestReports()
     {
         s_api = ScriptableObject.CreateInstance<TestRunnerApi>();
-        s_api.RegisterCallbacks(new AutoRegistrationTestReports());
+        s_callbacks = new AutoRegistrationTestReports();
+        s_api.RegisterCallbacks(s_callbacks);
+        AssemblyReloadEvents.beforeAssemblyReload += Release;
+        EditorApplication.quitting += Release;
     }
 
     /// <summary>
@@ -62,4 +70,16 @@ internal class AutoRegistrationTestReports : ICallbacks
     private static bool ContainsTests(ITestResultAdaptor result, string assemblyName) =>
         result.Name == assemblyName + ".dll" || result.Name == assemblyName ||
         result.HasChildren && result.Children.Any(child => ContainsTests(child, assemblyName));
+
+    /// <summary>
+    /// 在域重载或编辑器退出前解除监听并销毁持有的测试API
+    /// </summary>
+    private static void Release()
+    {
+        AssemblyReloadEvents.beforeAssemblyReload -= Release;
+        EditorApplication.quitting -= Release;
+        if (s_api == null) return;
+        s_api.UnregisterCallbacks(s_callbacks);
+        UnityEngine.Object.DestroyImmediate(s_api);
+    }
 }

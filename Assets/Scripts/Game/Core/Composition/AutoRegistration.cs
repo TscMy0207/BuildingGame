@@ -57,7 +57,7 @@ internal static class AutoRegistration
     /// </summary>
     /// <param name="builder">目标容器</param>
     /// <param name="types">候选类型</param>
-    internal static void RegisterTypes(IContainerBuilder builder, IEnumerable<Type> types)
+    private static void RegisterTypes(IContainerBuilder builder, IEnumerable<Type> types)
     {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         var entries = Discover(types);
@@ -91,7 +91,7 @@ internal static class AutoRegistration
     /// </summary>
     /// <param name="types">候选类型</param>
     /// <returns>按类型全名排序的注册描述</returns>
-    internal static IReadOnlyList<AutoRegistrationEntry> Discover(IEnumerable<Type> types)
+    private static IReadOnlyList<AutoRegistrationEntry> Discover(IEnumerable<Type> types)
     {
         if (types == null) throw new ArgumentNullException(nameof(types));
         var errors = new List<string>();
@@ -114,7 +114,7 @@ internal static class AutoRegistration
     /// <param name="attribute">自动注册声明</param>
     /// <param name="errors">收集错误信息</param>
     /// <returns>是否通过校验</returns>
-    internal static bool ValidateType(Type type, AutoRegisterAttribute attribute, List<string> errors)
+    private static bool ValidateType(Type type, AutoRegisterAttribute attribute, List<string> errors)
     {
         if (type == null) throw new ArgumentNullException(nameof(type));
         if (attribute == null) throw new ArgumentNullException(nameof(attribute));

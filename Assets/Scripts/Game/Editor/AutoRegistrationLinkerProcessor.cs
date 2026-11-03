@@ -40,7 +40,7 @@ public class AutoRegistrationLinkerProcessor : IUnityLinkerProcessor
     /// <param name="types">参与自动注册的类型</param>
     /// <param name="assemblyName">类型所属程序集名称</param>
     /// <returns>符合Unity链接器格式的保留清单</returns>
-    internal static XDocument CreateLinkerDocument(IEnumerable<Type> types, string assemblyName)
+    private static XDocument CreateLinkerDocument(IEnumerable<Type> types, string assemblyName)
     {
         if (types == null) throw new ArgumentNullException(nameof(types));
         if (string.IsNullOrEmpty(assemblyName)) throw new ArgumentException("程序集名称不能为空", nameof(assemblyName));
