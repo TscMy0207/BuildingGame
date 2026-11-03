@@ -134,7 +134,7 @@ public abstract class ConfigTableSubServiceBase<TTables> : IConfigTableSubServic
             ValidateTables(tables);
             EnsureLoadIsCurrent(generation, cancellationToken);
             Tables = tables ?? throw new InvalidOperationException($"{Name}配置解析结果为空");
-            _logger.Info($"{Name}配置加载完成 共{data.Count}个文件");
+            _logger.Log($"{Name}配置加载完成 共{data.Count}个文件");
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception)

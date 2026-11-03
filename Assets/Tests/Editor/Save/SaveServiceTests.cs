@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using NUnit.Framework;
+using UnityEngine;
 using VContainer;
 
 /// <summary>使用真实Easy Save文件验证存档 备份及迁移 不访问玩家存档目录</summary>
@@ -322,16 +323,12 @@ public sealed class SaveServiceTests
     /// <typeparam name="T">日志分类</typeparam>
     public sealed class TestLogger<T> : ILogger<T>
     {
-        /// <summary>启用测试日志入口</summary>
-        /// <param name="level">日志等级</param>
-        /// <returns>始终启用</returns>
-        public bool IsEnabled(LoggingLevel level) => true;
         /// <summary>接收本用例预期产生的诊断信息</summary>
-        /// <param name="level">日志等级</param>
+        /// <param name="type">日志类型</param>
         /// <param name="message">日志说明</param>
         /// <param name="exception">原始异常</param>
         /// <param name="callerFile">调用文件</param>
         /// <param name="callerLine">调用行号</param>
-        public void Write(LoggingLevel level, string message, Exception exception, string callerFile, int callerLine) { }
+        public void Write(LogType type, string message, Exception exception, string callerFile, int callerLine) { }
     }
 }

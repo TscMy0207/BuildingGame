@@ -242,19 +242,13 @@ public sealed class ConfigTableServiceTests
     private sealed class SilentLogger : ILogger<FrameworkTables>
     {
         /// <summary>
-        /// 测试中关闭日志输出
-        /// </summary>
-        /// <param name="level">日志等级</param>
-        /// <returns>始终返回关闭状态</returns>
-        public bool IsEnabled(LoggingLevel level) => false;
-        /// <summary>
         /// 接受测试日志
         /// </summary>
-        /// <param name="level">日志等级</param>
+        /// <param name="type">日志类型</param>
         /// <param name="message">日志说明</param>
         /// <param name="exception">原始异常</param>
         /// <param name="callerFile">调用文件</param>
         /// <param name="callerLine">调用行号</param>
-        public void Write(LoggingLevel level, string message, Exception exception, string callerFile, int callerLine) { }
+        public void Write(LogType type, string message, Exception exception, string callerFile, int callerLine) { }
     }
 }

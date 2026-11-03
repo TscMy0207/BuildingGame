@@ -9,19 +9,14 @@ using ZLogger.Providers;
 using ZLogger.Unity;
 
 /// <summary>
-/// 日志适配接口 为框架日志提供等级检查和分类输出
+/// 日志适配接口 为框架日志提供分类输出
 /// </summary>
 internal interface ILoggingService
 {
     /// <summary>
-    /// 检查指定等级是否有可用的输出目标
-    /// </summary>
-    bool IsEnabled(LoggingLevel level);
-
-    /// <summary>
     /// 输出日志并保留原始异常及调用位置
     /// </summary>
-    void Write(string category, LoggingLevel level, string message, Exception exception, string callerFile, int callerLine);
+    void Write(string category, LogType type, string message, Exception exception, string callerFile, int callerLine);
 }
 
 /// <summary>
@@ -42,7 +37,7 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
     private readonly object _sync = new();
 
     /// <summary>
-    /// 独立的控制台和文件工厂 分别控制格式和最低等级
+    /// 独立的控制台和文件工厂 分别控制格式
     /// </summary>
     private readonly ILoggerFactory _consoleFactory;
     private readonly ILoggerFactory _fileFactory;
@@ -83,7 +78,8 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
         _sessionName = $"BuildingGame-{DateTime.UtcNow:yyyyMMdd-HHmmss-fffffff}-{Guid.NewGuid():N}";
         _consoleFactory = LoggerFactory.Create(builder =>
         {
-            builder.SetMinimumLevel(ToLogLevel(FrameworkSettings.ConsoleLoggingMinLevel));
+            // 底层不设最低等级 输出分流由Write按LogType决定
+            builder.SetMinimumLevel(LogLevel.Trace);
             builder.AddZLoggerUnityDebug(options =>
             {
                 options.PrettyStacktrace = false;
@@ -95,7 +91,7 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
         {
             _fileFactory = LoggerFactory.Create(builder =>
             {
-                builder.SetMinimumLevel(ToLogLevel(FrameworkSettings.FileLoggingMinLevel));
+                builder.SetMinimumLevel(LogLevel.Trace);
                 builder.AddZLoggerRollingFile(options =>
                 {
                     options.FilePathSelector = SelectLogFile;
@@ -124,25 +120,17 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
     public UniTask StartAsync(StartupContext context) => UniTask.CompletedTask;
 
     /// <summary>
-    /// 检查服务状态以及控制台和文件的最低日志等级
+    /// 按LogType分流 普通日志仅控制台 警告和错误类同时写入文件
     /// </summary>
-    public bool IsEnabled(LoggingLevel level)
-    {
-        return Volatile.Read(ref _isDisposed) == 0 && ToLogLevel(level) != LogLevel.None &&
-               (level >= FrameworkSettings.ConsoleLoggingMinLevel || level >= FrameworkSettings.FileLoggingMinLevel);
-    }
-
-    /// <summary>
-    /// 将框架日志分别写入控制台和文件 控制台异常保留说明文字
-    /// </summary>
-    public void Write(string category, LoggingLevel level, string message, Exception exception, string callerFile, int callerLine)
+    public void Write(string category, LogType type, string message, Exception exception, string callerFile, int callerLine)
     {
         lock (_sync)
         {
-            if (!IsEnabled(level)) return;
+            if (Volatile.Read(ref _isDisposed) != 0) return;
 
-            var logLevel = ToLogLevel(level);
-            _fileFactory.CreateLogger(category).ZLog(logLevel, exception, $"{message}", filePath: callerFile, lineNumber: callerLine);
+            var logLevel = ToLogLevel(type);
+            if (type != LogType.Log)
+                _fileFactory.CreateLogger(category).ZLog(logLevel, exception, $"{message}", filePath: callerFile, lineNumber: callerLine);
 
             var wasForwarding = t_isForwarding;
             t_isForwarding = true;
@@ -228,21 +216,16 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
     }
 
     /// <summary>
-    /// 将Unity原生日志仅写入文件 避免重新发送到控制台造成递归或重复
+    /// 将Unity原生的警告和错误类日志仅写入文件 避免重新发送到控制台造成递归或重复
     /// </summary>
     private void HandleUnityLog(string message, string stackTrace, LogType type)
     {
         if (t_isForwarding || Volatile.Read(ref _isDisposed) != 0) return;
+        if (type == LogType.Log) return;
         lock (_sync)
         {
             if (_isDisposed != 0) return;
-            var level = type switch
-            {
-                LogType.Warning => LogLevel.Warning,
-                LogType.Error or LogType.Exception or LogType.Assert => LogLevel.Error,
-                _ => LogLevel.Information,
-            };
-            _unityLogger.ZLog(level, $"{message}\n{stackTrace}", filePath: "", lineNumber: 0);
+            _unityLogger.ZLog(ToLogLevel(type), $"{message}\n{stackTrace}", filePath: "", lineNumber: 0);
         }
     }
 
@@ -264,15 +247,13 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
     }
 
     /// <summary>
-    /// 将框架日志等级映射到标准日志等级
+    /// 将Unity日志类型映射到标准日志等级
     /// </summary>
-    private static LogLevel ToLogLevel(LoggingLevel level) => level switch
+    private static LogLevel ToLogLevel(LogType type) => type switch
     {
-        LoggingLevel.Debug => LogLevel.Debug,
-        LoggingLevel.Info => LogLevel.Information,
-        LoggingLevel.Warning => LogLevel.Warning,
-        LoggingLevel.Error => LogLevel.Error,
-        _ => LogLevel.None,
+        LogType.Warning => LogLevel.Warning,
+        LogType.Error or LogType.Exception or LogType.Assert => LogLevel.Error,
+        _ => LogLevel.Information,
     };
 
     /// <summary>

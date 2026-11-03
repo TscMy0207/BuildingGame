@@ -26,7 +26,7 @@ internal class ConfigTableService : ISystem, IStartupService
         foreach (var sub in m_subServices)
         {
             context.LifetimeToken.ThrowIfCancellationRequested();
-            m_logger.Info($"开始加载配置子服务{sub.Name}");
+            m_logger.Log($"开始加载配置子服务{sub.Name}");
             await sub.LoadAsync(context.LifetimeToken);
         }
     }

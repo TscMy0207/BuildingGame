@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 /// <summary>
 /// 泛型日志接口 通过T自动提取模块名
@@ -6,14 +7,9 @@ using System;
 public interface ILogger<T>
 {
     /// <summary>
-    /// 检查指定等级是否启用
-    /// </summary>
-    bool IsEnabled(LoggingLevel level);
-
-    /// <summary>
     /// 写入一条日志
     /// </summary>
-    void Write(LoggingLevel level, string message, Exception exception, string callerFile, int callerLine);
+    void Write(LogType type, string message, Exception exception, string callerFile, int callerLine);
 }
 
 /// <summary>
@@ -34,18 +30,10 @@ internal sealed class Logger<T> : ILogger<T>
     }
 
     /// <summary>
-    /// 检查指定等级是否启用
-    /// </summary>
-    public bool IsEnabled(LoggingLevel level)
-    {
-        return _loggingService.IsEnabled(level);
-    }
-
-    /// <summary>
     /// 转发消息 异常和原始调用位置
     /// </summary>
-    public void Write(LoggingLevel level, string message, Exception exception, string callerFile, int callerLine)
+    public void Write(LogType type, string message, Exception exception, string callerFile, int callerLine)
     {
-        _loggingService.Write(_category, level, message, exception, callerFile, callerLine);
+        _loggingService.Write(_category, type, message, exception, callerFile, callerLine);
     }
 }

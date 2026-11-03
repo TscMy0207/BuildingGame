@@ -115,7 +115,7 @@ internal class SaveService : ISystem, IStartupService, ISaveService
                 {
                     LoadLegacy();
                     _lifetimeToken.ThrowIfCancellationRequested();
-                    if (SaveCurrent(settings)) _logger.Info("旧JSON存档已迁移为Easy Save存档 原文件已保留");
+                    if (SaveCurrent(settings)) _logger.Log("旧JSON存档已迁移为Easy Save存档 原文件已保留");
                 }
             }
         }
@@ -209,7 +209,7 @@ internal class SaveService : ISystem, IStartupService, ISaveService
         LoadFile(backup);
         ES3.CopyFile(backup, settings);
         _canSave = true;
-        _logger.Info("已从Easy Save备份恢复存档");
+        _logger.Log("已从Easy Save备份恢复存档");
     }
 
     /// <summary>校验容器与数据段版本后应用所有已注册数据</summary>

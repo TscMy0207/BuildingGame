@@ -39,15 +39,6 @@ internal static class FrameworkSettings
     internal const int ObjectPoolMaxInactiveCount = 64;
 
     /// <summary>
-    /// 文件日志最低记录等级
-    /// </summary>
-    internal const LoggingLevel FileLoggingMinLevel = LoggingLevel.Info;
-    /// <summary>
-    /// 控制台日志最低记录等级
-    /// </summary>
-    internal const LoggingLevel ConsoleLoggingMinLevel = LoggingLevel.Debug;
-
-    /// <summary>
     /// ZLogger滚动文件的大小阈值 单位MB 单条日志和后台批次可能使文件略超阈值
     /// </summary>
     internal const int LoggingMaxFileSizeMb = 2;
