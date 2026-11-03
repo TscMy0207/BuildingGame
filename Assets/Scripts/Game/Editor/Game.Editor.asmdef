@@ -1,5 +1,5 @@
 {
-  "name": "Game.Core.Editor",
+  "name": "Game.Editor",
   "references": ["Game"],
   "includePlatforms": ["Editor"]
 }
