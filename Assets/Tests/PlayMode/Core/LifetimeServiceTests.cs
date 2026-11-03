@@ -34,7 +34,7 @@ public class LifetimeServiceTests
     /// <summary>
     /// 全局定时器服务
     /// </summary>
-    private ITimerService _timers;
+    private ITimeService _timers;
     /// <summary>
     /// 计数加载器
     /// </summary>
@@ -71,7 +71,7 @@ public class LifetimeServiceTests
         builder.RegisterInstance(new Dependency());
         _container = builder.Build();
         _events = _container.Resolve<IEventService>();
-        _timers = _container.Resolve<ITimerService>();
+        _timers = _container.Resolve<ITimeService>();
         ((IStartupService)_events).StartAsync(new StartupContext(CancellationToken.None, null)).GetAwaiter().GetResult();
         ((IStartupService)_timers).StartAsync(new StartupContext(CancellationToken.None, null)).GetAwaiter().GetResult();
     }
@@ -160,7 +160,7 @@ public class LifetimeServiceTests
         using var bag = new DisposableBag();
         var calls = 0;
         var completed = 0;
-        var timer = _timers.Schedule(TimeSpan.FromMilliseconds(15), DelayType.Realtime,
+        var timer = _timers.Schedule(TimeSpan.FromMilliseconds(15),
             () => calls++, onCompleted: _ => completed++).AddTo(bag);
         yield return new WaitForSecondsRealtime(0.08f);
         Assert.That(timer.IsDisposed, Is.True);
@@ -181,7 +181,7 @@ public class LifetimeServiceTests
         var calls = 0;
         var completed = 0;
         var subscription = _events.Subscribe(_key, _ => calls++).AddTo(owner);
-        var timer = _timers.Schedule(TimeSpan.FromSeconds(30), DelayType.Realtime,
+        var timer = _timers.Schedule(TimeSpan.FromSeconds(30),
             () => Assert.Fail(), onCompleted: _ => completed++).AddTo(owner);
         owner.SetActive(false);
         _events.Publish(_key, 1);

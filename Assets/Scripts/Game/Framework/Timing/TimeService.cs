@@ -38,21 +38,29 @@ public class TimerHandle : LifetimeHandle
 }
 
 /// <summary>
-/// 定时器服务接口
+/// 时间服务接口
 /// </summary>
-public interface ITimerService
+public interface ITimeService
 {
+    /// <summary>
+    /// 当前UTC时间
+    /// </summary>
+    DateTime UtcNow { get; }
+    /// <summary>
+    /// 当前本地时间
+    /// </summary>
+    DateTime LocalNow { get; }
+
     /// <summary>
     /// 调度一个一次性定时器
     /// 取消令牌触发后回调不会再执行 但onCompleted仍会触发一次
     /// 回调内部异常会被捕获并记录 不会向调用方抛出
     /// </summary>
     /// <param name="delay">延迟时间</param>
-    /// <param name="delayType">延迟类型</param>
     /// <param name="callback">到点回调</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <param name="onCompleted">完成通知 正常完成和取消都会触发</param>
-    TimerHandle Schedule(TimeSpan delay, DelayType delayType, Action callback, CancellationToken cancellationToken = default, Action<TimerHandle> onCompleted = null);
+    TimerHandle Schedule(TimeSpan delay, Action callback, CancellationToken cancellationToken = default, Action<TimerHandle> onCompleted = null);
 
     /// <summary>
     /// 调度一个重复定时器
@@ -60,11 +68,10 @@ public interface ITimerService
     /// 回调内部异常会被捕获并记录 不会向调用方抛出
     /// </summary>
     /// <param name="interval">重复间隔 必须大于零</param>
-    /// <param name="delayType">延迟类型</param>
     /// <param name="callback">每次间隔回调</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <param name="onCompleted">完成通知 正常完成和取消都会触发</param>
-    TimerHandle ScheduleRepeating(TimeSpan interval, DelayType delayType, Action callback, CancellationToken cancellationToken = default, Action<TimerHandle> onCompleted = null);
+    TimerHandle ScheduleRepeating(TimeSpan interval, Action callback, CancellationToken cancellationToken = default, Action<TimerHandle> onCompleted = null);
 
     /// <summary>
     /// 取消指定定时器
@@ -151,15 +158,15 @@ internal class TimerInstance : IDisposable
 }
 
 /// <summary>
-/// 定时器服务实现
+/// 时间服务实现
 /// </summary>
-[AutoRegister(typeof(ITimerService), typeof(IStartupService), AsSelf = false)]
-internal class TimerService : ISystem, IStartupService, ITimerService
+[AutoRegister(typeof(ITimeService), typeof(IStartupService), AsSelf = false)]
+internal class TimeService : ISystem, IStartupService, ITimeService
 {
     /// <summary>
-    /// 定时器异常记录器
+    /// 时间服务异常记录器
     /// </summary>
-    private readonly ILogger<TimerService> _logger;
+    private readonly ILogger<TimeService> _logger;
     /// <summary>
     /// 仍在运行的定时器实例
     /// </summary>
@@ -179,9 +186,9 @@ internal class TimerService : ISystem, IStartupService, ITimerService
     private bool _disposed;
 
     /// <summary>
-    /// 接收定时器日志服务
+    /// 接收时间服务日志
     /// </summary>
-    public TimerService(ILogger<TimerService> logger)
+    public TimeService(ILogger<TimeService> logger)
     {
         _logger = logger;
     }
@@ -191,22 +198,22 @@ internal class TimerService : ISystem, IStartupService, ITimerService
     /// <summary>
     /// 服务启动顺序
     /// </summary>
-    public int Priority => FrameworkSettings.TimerStartupPriority;
+    public int Priority => FrameworkSettings.TimeStartupPriority;
     /// <summary>
     /// 启动进度说明
     /// </summary>
-    public string Description => "定时器服务";
+    public string Description => "时间服务";
     /// <summary>
     /// 启动进度权重
     /// </summary>
-    public float Weight => FrameworkSettings.TimerStartupWeight;
+    public float Weight => FrameworkSettings.TimeStartupWeight;
 
     /// <summary>
     /// 绑定全局服务生命周期
     /// </summary>
     public UniTask StartAsync(StartupContext context)
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(TimerService));
+        if (_disposed) throw new ObjectDisposedException(nameof(TimeService));
         _lifetimeToken = context.LifetimeToken;
         return UniTask.CompletedTask;
     }
@@ -226,11 +233,20 @@ internal class TimerService : ISystem, IStartupService, ITimerService
     #endregion
 
     /// <summary>
+    /// 当前UTC时间
+    /// </summary>
+    public DateTime UtcNow => DateTime.UtcNow;
+    /// <summary>
+    /// 当前本地时间
+    /// </summary>
+    public DateTime LocalNow => DateTime.Now;
+
+    /// <summary>
     /// 创建一次性定时器并返回可释放句柄
     /// </summary>
-    public TimerHandle Schedule(TimeSpan delay, DelayType delayType, Action callback, CancellationToken cancellationToken = default, Action<TimerHandle> onCompleted = null)
+    public TimerHandle Schedule(TimeSpan delay, Action callback, CancellationToken cancellationToken = default, Action<TimerHandle> onCompleted = null)
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(TimerService));
+        if (_disposed) throw new ObjectDisposedException(nameof(TimeService));
         _lifetimeToken.ThrowIfCancellationRequested();
         cancellationToken.ThrowIfCancellationRequested();
         
@@ -240,16 +256,16 @@ internal class TimerService : ISystem, IStartupService, ITimerService
         // 创建定时器实例
         var instance = CreateInstance(cancellationToken, onCompleted);
         // 启动一次定时器
-        RunOnceAsync(delay, delayType, callback, instance).Forget();
+        RunOnceAsync(delay, callback, instance).Forget();
         return instance.Handle;
     }
 
     /// <summary>
     /// 创建循环定时器并返回可释放句柄
     /// </summary>
-    public TimerHandle ScheduleRepeating(TimeSpan interval, DelayType delayType, Action callback, CancellationToken cancellationToken = default, Action<TimerHandle> onCompleted = null)
+    public TimerHandle ScheduleRepeating(TimeSpan interval, Action callback, CancellationToken cancellationToken = default, Action<TimerHandle> onCompleted = null)
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(TimerService));
+        if (_disposed) throw new ObjectDisposedException(nameof(TimeService));
         _lifetimeToken.ThrowIfCancellationRequested();
         if (interval <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(interval), interval, "循环定时器间隔必须大于零");
         if (callback == null) throw new ArgumentNullException(nameof(callback));
@@ -258,7 +274,7 @@ internal class TimerService : ISystem, IStartupService, ITimerService
         // 创建定时器实例
         var instance = CreateInstance(cancellationToken, onCompleted);
         // 启动重复定时器
-        RunRepeatingAsync(interval, delayType, callback, instance).Forget();
+        RunRepeatingAsync(interval, callback, instance).Forget();
         return instance.Handle;
     }
     
@@ -278,11 +294,11 @@ internal class TimerService : ISystem, IStartupService, ITimerService
     /// <summary>
     /// 启动一次定时器
     /// </summary>
-    private async UniTask RunOnceAsync(TimeSpan delay, DelayType delayType, Action callback, TimerInstance instance)
+    private async UniTask RunOnceAsync(TimeSpan delay, Action callback, TimerInstance instance)
     {
         try
         {
-            await UniTask.Delay(delay, delayType, PlayerLoopTiming.Update, instance.Token);
+            await UniTask.Delay(delay, DelayType.Realtime, PlayerLoopTiming.Update, instance.Token);
             instance.Token.ThrowIfCancellationRequested();
             callback.Invoke();
         }
@@ -302,13 +318,13 @@ internal class TimerService : ISystem, IStartupService, ITimerService
     /// <summary>
     /// 启动重复定时器
     /// </summary>
-    private async UniTask RunRepeatingAsync(TimeSpan interval, DelayType delayType, Action callback, TimerInstance instance)
+    private async UniTask RunRepeatingAsync(TimeSpan interval, Action callback, TimerInstance instance)
     {
         try
         {
             while (!instance.Token.IsCancellationRequested)
             {
-                await UniTask.Delay(interval, delayType, PlayerLoopTiming.Update, instance.Token);
+                await UniTask.Delay(interval, DelayType.Realtime, PlayerLoopTiming.Update, instance.Token);
                 instance.Token.ThrowIfCancellationRequested();
                 callback.Invoke();
             }

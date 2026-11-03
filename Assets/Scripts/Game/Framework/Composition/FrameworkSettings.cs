@@ -59,13 +59,13 @@ internal static class FrameworkSettings
     /// </summary>
     internal const float SaveStartupWeight = 0.05f;
     /// <summary>
-    /// 定时器在业务服务使用前完成启动
+    /// 时间服务在业务服务使用前完成启动
     /// </summary>
-    internal const int TimerStartupPriority = 1;
+    internal const int TimeStartupPriority = 1;
     /// <summary>
-    /// 定时器服务不占用总体启动进度
+    /// 时间服务不占用总体启动进度
     /// </summary>
-    internal const float TimerStartupWeight = 0f;
+    internal const float TimeStartupWeight = 0f;
     /// <summary>
     /// 音频服务在资源与事件服务就绪后初始化宿主
     /// </summary>
