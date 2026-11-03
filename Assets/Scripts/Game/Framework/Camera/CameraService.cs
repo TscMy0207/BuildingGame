@@ -28,19 +28,14 @@ internal class CameraService : ISystem, ICameraService, IStartupService
     /// <summary>服务是否已经永久释放</summary>
     private bool _disposed;
 
+    #region 服务生命周期
+
     /// <summary>摄像机服务启动顺序</summary>
     public int Priority => FrameworkSettings.CameraStartupPriority;
     /// <summary>启动进度说明</summary>
     public string Description => "摄像机服务";
     /// <summary>启动进度权重</summary>
     public float Weight => FrameworkSettings.CameraStartupWeight;
-    /// <summary>服务生命周期与宿主组件是否均可用</summary>
-    public bool IsReady => _started && !_disposed && !_lifetimeToken.IsCancellationRequested && _host != null && _host.IsAvailable;
-    /// <summary>当前可用的输出摄像机</summary>
-    public Camera OutputCamera => IsReady ? _host.OutputCamera : null;
-    /// <summary>服务请求的有效目标镜头标识 不替代Brain实际输出状态</summary>
-    public string CurrentCameraId => IsReady && _currentCameraId != null &&
-        _cameras.TryGetValue(_currentCameraId, out var state) && state.Camera != null ? _currentCameraId : null;
 
     /// <summary>监听场景生命周期并尝试绑定主摄像机上的宿主 无宿主时保持待绑定状态</summary>
     /// <param name="context">启动取消令牌和进度回调</param>
@@ -67,6 +62,26 @@ internal class CameraService : ISystem, ICameraService, IStartupService
             throw;
         }
     }
+
+    /// <summary>解除场景监听并恢复所有借用对象 可重复调用且不销毁宿主</summary>
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneUnloaded -= OnSceneUnloaded;
+        ReleaseHost();
+    }
+
+    #endregion
+
+    /// <summary>服务生命周期与宿主组件是否均可用</summary>
+    public bool IsReady => _started && !_disposed && !_lifetimeToken.IsCancellationRequested && _host != null && _host.IsAvailable;
+    /// <summary>当前可用的输出摄像机</summary>
+    public Camera OutputCamera => IsReady ? _host.OutputCamera : null;
+    /// <summary>服务请求的有效目标镜头标识 不替代Brain实际输出状态</summary>
+    public string CurrentCameraId => IsReady && _currentCameraId != null &&
+        _cameras.TryGetValue(_currentCameraId, out var state) && state.Camera != null ? _currentCameraId : null;
 
     /// <summary>校验全部预设后替换宿主 避免无效配置破坏当前绑定</summary>
     /// <param name="host">待绑定的场景宿主</param>
@@ -191,16 +206,6 @@ internal class CameraService : ISystem, ICameraService, IStartupService
             return false;
         source.GenerateImpulseWithForce(strength);
         return true;
-    }
-
-    /// <summary>解除场景监听并恢复所有借用对象 可重复调用且不销毁宿主</summary>
-    public void Dispose()
-    {
-        if (_disposed) return;
-        _disposed = true;
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-        SceneManager.sceneUnloaded -= OnSceneUnloaded;
-        ReleaseHost();
     }
 
     /// <summary>检查标识 组件重复 顶层归属和输出层遮罩 不修改任何对象</summary>

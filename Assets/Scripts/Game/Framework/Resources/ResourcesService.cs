@@ -51,43 +51,6 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
     /// <returns>包内采集地址</returns>
     private static string GetAssetLocation(string location) => location.Substring(location.IndexOf('/') + 1);
 
-    #region 服务生命周期
-
-    public int Priority => FrameworkSettings.ResourcesStartupPriority;
-    public string Description => "资源服务";
-    public float Weight => FrameworkSettings.ResourcesStartupWeight;
-
-    public async UniTask StartAsync(StartupContext context)
-    {
-        m_lifetimeToken = context.LifetimeToken;
-        context.LifetimeToken.ThrowIfCancellationRequested();
-        YooAssets.Initialize();
-        await m_packageManager.InitializeLocalPackagesAsync(context);
-        context.LifetimeToken.ThrowIfCancellationRequested();
-    }
-
-    public void Dispose()
-    {
-        foreach (var pair in m_cachedAssets)
-        {
-            try
-            {
-                pair.Value.handle.Release();
-            }
-            catch (Exception e)
-            {
-                m_logger.Error($"释放资源{pair.Key}失败", e);
-            }
-        }
-
-        m_cachedAssets.Clear();
-        foreach (PendingLoad pending in m_loadingTasks.Values)
-            pending.Completion.TrySetCanceled(new CancellationToken(true));
-        m_loadingTasks.Clear();
-    }
-
-    #endregion
-
     private readonly IResourcesPackageManager m_packageManager;
     private readonly ILogger<ResourcesService> m_logger;
     private CancellationToken m_lifetimeToken;
@@ -147,6 +110,43 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
         m_packageManager = packageManager;
         m_logger = logger;
     }
+
+    #region 服务生命周期
+
+    public int Priority => FrameworkSettings.ResourcesStartupPriority;
+    public string Description => "资源服务";
+    public float Weight => FrameworkSettings.ResourcesStartupWeight;
+
+    public async UniTask StartAsync(StartupContext context)
+    {
+        m_lifetimeToken = context.LifetimeToken;
+        context.LifetimeToken.ThrowIfCancellationRequested();
+        YooAssets.Initialize();
+        await m_packageManager.InitializeLocalPackagesAsync(context);
+        context.LifetimeToken.ThrowIfCancellationRequested();
+    }
+
+    public void Dispose()
+    {
+        foreach (var pair in m_cachedAssets)
+        {
+            try
+            {
+                pair.Value.handle.Release();
+            }
+            catch (Exception e)
+            {
+                m_logger.Error($"释放资源{pair.Key}失败", e);
+            }
+        }
+
+        m_cachedAssets.Clear();
+        foreach (PendingLoad pending in m_loadingTasks.Values)
+            pending.Completion.TrySetCanceled(new CancellationToken(true));
+        m_loadingTasks.Clear();
+    }
+
+    #endregion
 
     /// <summary>
     /// 异步加载资源

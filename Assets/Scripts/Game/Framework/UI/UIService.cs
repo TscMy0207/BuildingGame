@@ -48,13 +48,6 @@ internal class UIService : ISystem, IStartupService, IUIService
     /// <summary>全局UI根预制体地址</summary>
     private const string RootPrefab = FrameworkSettings.UIRootLocation;
 
-    /// <summary>启动顺序</summary>
-    public int Priority => FrameworkSettings.UIStartupPriority;
-    /// <summary>启动进度说明</summary>
-    public string Description => "UI服务";
-    /// <summary>启动进度权重</summary>
-    public float Weight => FrameworkSettings.UIStartupWeight;
-
     /// <summary>接收框架服务及所属全局容器</summary>
     public UIService(IResourcesService resources, IFrameworkConfigTableService configTableService,
         ILogger<UIService> logger, IObjectResolver rootResolver)
@@ -64,6 +57,15 @@ internal class UIService : ISystem, IStartupService, IUIService
         _logger = logger;
         _rootResolver = rootResolver;
     }
+
+    #region 服务生命周期
+
+    /// <summary>启动顺序</summary>
+    public int Priority => FrameworkSettings.UIStartupPriority;
+    /// <summary>启动进度说明</summary>
+    public string Description => "UI服务";
+    /// <summary>启动进度权重</summary>
+    public float Weight => FrameworkSettings.UIStartupWeight;
 
     /// <summary>加载并保留全局UI根节点</summary>
     public async UniTask StartAsync(StartupContext context)
@@ -94,6 +96,21 @@ internal class UIService : ISystem, IStartupService, IUIService
         linked.Token.ThrowIfCancellationRequested();
         context.ReportProgress?.Invoke(1f, "UI根节点初始化完成");
     }
+
+    /// <summary>取消所有打开流程并销毁当前服务拥有的UI对象</summary>
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        try { _shutdown.Cancel(); }
+        catch (Exception exception) { _logger.Error("取消UI打开流程时清理失败", exception); }
+        foreach (var handle in new List<UIPanelHandle>(_instances.Keys)) DisposeImmediately(handle);
+        if (_uiRoot != null) Object.Destroy(_uiRoot.gameObject);
+        _uiRoot = null;
+        _shutdown.Dispose();
+    }
+
+    #endregion
 
     /// <summary>使用全局容器创建面板 并处理打开取消或外部销毁</summary>
     public async UniTask<UIPanelHandle> OpenAsync<TArgs>(UIKey<TArgs> key, TArgs args,
@@ -150,19 +167,6 @@ internal class UIService : ISystem, IStartupService, IUIService
         try { panel.Dispose(); }
         catch (Exception exception) { _logger.Error($"关闭UI面板{panel.Id}时清理失败", exception); }
         finally { if (panel.GameObject != null) Object.Destroy(panel.GameObject); }
-    }
-
-    /// <summary>取消所有打开流程并销毁当前服务拥有的UI对象</summary>
-    public void Dispose()
-    {
-        if (_disposed) return;
-        _disposed = true;
-        try { _shutdown.Cancel(); }
-        catch (Exception exception) { _logger.Error("取消UI打开流程时清理失败", exception); }
-        foreach (var handle in new List<UIPanelHandle>(_instances.Keys)) DisposeImmediately(handle);
-        if (_uiRoot != null) Object.Destroy(_uiRoot.gameObject);
-        _uiRoot = null;
-        _shutdown.Dispose();
     }
 
     /// <summary>跟踪单个面板的销毁并移除全局实例记录</summary>

@@ -56,15 +56,6 @@ internal class SaveService : ISystem, IStartupService, ISaveService
     /// <summary>发生无法恢复或不兼容的读档错误后禁止覆盖原文件</summary>
     private bool _canSave;
 
-    /// <summary>启动优先级</summary>
-    public int Priority => FrameworkSettings.SaveStartupPriority;
-    /// <summary>启动进度描述</summary>
-    public string Description => "存档服务";
-    /// <summary>启动进度权重</summary>
-    public float Weight => FrameworkSettings.SaveStartupWeight;
-    /// <summary>当前活动的存档槽</summary>
-    public SaveSlotId ActiveSlot { get; private set; }
-
     /// <summary>绑定处理器与日志 并使用Unity持久化目录</summary>
     /// <param name="handlers">已注册的数据段处理器</param>
     /// <param name="logger">日志记录器</param>
@@ -91,6 +82,15 @@ internal class SaveService : ISystem, IStartupService, ISaveService
                 throw new InvalidOperationException($"存档数据段标识重复:{handler.Key}");
         }
     }
+
+    #region 服务生命周期
+
+    /// <summary>启动优先级</summary>
+    public int Priority => FrameworkSettings.SaveStartupPriority;
+    /// <summary>启动进度描述</summary>
+    public string Description => "存档服务";
+    /// <summary>启动进度权重</summary>
+    public float Weight => FrameworkSettings.SaveStartupWeight;
 
     /// <summary>读取默认槽 优先使用ES3文件 缺失时迁移旧JSON</summary>
     /// <param name="context">框架启动上下文</param>
@@ -131,6 +131,18 @@ internal class SaveService : ISystem, IStartupService, ISaveService
         return UniTask.CompletedTask;
     }
 
+    /// <summary>停止接受后续保存请求</summary>
+    public void Dispose()
+    {
+        _disposed = true;
+        _canSave = false;
+    }
+
+    #endregion
+
+    /// <summary>当前活动的存档槽</summary>
+    public SaveSlotId ActiveSlot { get; private set; }
+
     /// <summary>先完整序列化所有数据段 再创建备份并提交到磁盘</summary>
     /// <param name="cancellationToken">写入前检查的取消令牌</param>
     /// <returns>是否保存成功</returns>
@@ -140,13 +152,6 @@ internal class SaveService : ISystem, IStartupService, ISaveService
         if (!_started || _disposed || !_canSave) return UniTask.FromResult(false);
         _lifetimeToken.ThrowIfCancellationRequested();
         return UniTask.FromResult(SaveCurrent(CreateSettings(GetPath(".es3")), cancellationToken));
-    }
-
-    /// <summary>停止接受后续保存请求</summary>
-    public void Dispose()
-    {
-        _disposed = true;
-        _canSave = false;
     }
 
     /// <summary>完整提交快照 数据段失败时不触碰磁盘上的旧存档</summary>

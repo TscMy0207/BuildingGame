@@ -83,6 +83,8 @@ internal class EventService : ISystem, IStartupService, IEventService
         _subscriber = subscriber;
     }
 
+    #region 服务生命周期
+
     /// <summary>
     /// 事件服务启动优先级
     /// </summary>
@@ -110,6 +112,22 @@ internal class EventService : ISystem, IStartupService, IEventService
         _lifetimeToken = context.LifetimeToken;
         return UniTask.CompletedTask;
     }
+
+    /// <summary>
+    /// 释放所有MessagePipe订阅并清理事件类型记录
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        foreach (var subscription in new List<EventHandle>(_subscriptions.Values))
+            subscription.Dispose();
+
+        _subscriptions.Clear();
+        _argumentTypes.Clear();
+    }
+
+    #endregion
 
     /// <summary>
     /// 发布事件并同步通知所有订阅者
@@ -196,19 +214,5 @@ internal class EventService : ISystem, IStartupService, IEventService
         }
 
         _argumentTypes.Add(key.Id, typeof(TArgs));
-    }
-
-    /// <summary>
-    /// 释放所有MessagePipe订阅并清理事件类型记录
-    /// </summary>
-    public void Dispose()
-    {
-        if (_disposed) return;
-        _disposed = true;
-        foreach (var subscription in new List<EventHandle>(_subscriptions.Values))
-            subscription.Dispose();
-
-        _subscriptions.Clear();
-        _argumentTypes.Clear();
     }
 }

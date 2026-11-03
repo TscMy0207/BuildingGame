@@ -17,6 +17,8 @@ internal class ConfigTableService : ISystem, IStartupService
         m_logger = logger;
     }
 
+    #region 服务生命周期
+
     public int Priority => FrameworkSettings.ConfigTableStartupPriority;
     public string Description => "配置表服务";
     public float Weight => FrameworkSettings.ConfigTableStartupWeight;
@@ -36,4 +38,6 @@ internal class ConfigTableService : ISystem, IStartupService
         foreach (var sub in m_subServices)
             sub.Clear();
     }
+
+    #endregion
 }

@@ -34,13 +34,6 @@ internal class ObjectPoolService : ISystem, IObjectPoolService, IStartupService
     private bool _disposed;
     private bool _notifying;
 
-    /// <summary>在资源服务之后启动</summary>
-    public int Priority => FrameworkSettings.ObjectPoolStartupPriority;
-    /// <summary>启动流程显示名称</summary>
-    public string Description => "对象池服务";
-    /// <summary>启动进度权重</summary>
-    public float Weight => FrameworkSettings.ObjectPoolStartupWeight;
-
     /// <summary>
     /// 绑定当前容器的资源 依赖注入和日志服务
     /// </summary>
@@ -54,6 +47,15 @@ internal class ObjectPoolService : ISystem, IObjectPoolService, IStartupService
         _logger = logger;
     }
 
+    #region 服务生命周期
+
+    /// <summary>在资源服务之后启动</summary>
+    public int Priority => FrameworkSettings.ObjectPoolStartupPriority;
+    /// <summary>启动流程显示名称</summary>
+    public string Description => "对象池服务";
+    /// <summary>启动进度权重</summary>
+    public float Weight => FrameworkSettings.ObjectPoolStartupWeight;
+
     /// <summary>
     /// 记录服务生命周期 池和宿主按首次使用创建
     /// </summary>
@@ -65,6 +67,19 @@ internal class ObjectPoolService : ISystem, IObjectPoolService, IStartupService
         context.ReportProgress?.Invoke(1f, "对象池服务初始化完成");
         return UniTask.CompletedTask;
     }
+
+    /// <summary>
+    /// 立即停用全部实例 并启动等待Unity销毁完成的资源清理 可重复调用
+    /// </summary>
+    public void Dispose()
+    {
+        CheckThreadAndCallback();
+        if (_disposed) return;
+        _disposed = true;
+        ClearAllAsync().Forget(exception => _logger.Error("清理对象池资源失败", exception));
+    }
+
+    #endregion
 
     /// <summary>
     /// 供全局启动及模块Scope使用相同的初始化规则
@@ -187,17 +202,6 @@ internal class ObjectPoolService : ISystem, IObjectPoolService, IStartupService
         var pending = new List<UniTask>();
         foreach (var entry in _closing) pending.Add(entry.Cleared.Task);
         return UniTask.WhenAll(pending);
-    }
-
-    /// <summary>
-    /// 立即停用全部实例 并启动等待Unity销毁完成的资源清理 可重复调用
-    /// </summary>
-    public void Dispose()
-    {
-        CheckThreadAndCallback();
-        if (_disposed) return;
-        _disposed = true;
-        ClearAllAsync().Forget(exception => _logger.Error("清理对象池资源失败", exception));
     }
 
     /// <summary>

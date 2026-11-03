@@ -128,6 +128,24 @@ internal sealed class TimerInstance : IDisposable
 [AutoRegister(typeof(ITimerService), typeof(IStartupService), AsSelf = false)]
 internal class TimerService : ISystem, IStartupService, ITimerService
 {
+    /// <summary>定时器异常记录器</summary>
+    private readonly ILogger<TimerService> _logger;
+    /// <summary>仍在运行的定时器实例</summary>
+    private readonly Dictionary<TimerHandle, TimerInstance> _instances = new();
+
+    /// <summary>全局服务取消令牌</summary>
+    private CancellationToken _lifetimeToken = new(true);
+    /// <summary>下一个定时器编号</summary>
+    private int _nextHandleId;
+    /// <summary>服务是否已经释放</summary>
+    private bool _disposed;
+
+    /// <summary>接收定时器日志服务</summary>
+    public TimerService(ILogger<TimerService> logger)
+    {
+        _logger = logger;
+    }
+
     #region 服务生命周期
 
     /// <summary>服务启动顺序</summary>
@@ -156,24 +174,6 @@ internal class TimerService : ISystem, IStartupService, ITimerService
     }
 
     #endregion
-
-    /// <summary>定时器异常记录器</summary>
-    private readonly ILogger<TimerService> _logger;
-    /// <summary>仍在运行的定时器实例</summary>
-    private readonly Dictionary<TimerHandle, TimerInstance> _instances = new();
-
-    /// <summary>全局服务取消令牌</summary>
-    private CancellationToken _lifetimeToken = new(true);
-    /// <summary>下一个定时器编号</summary>
-    private int _nextHandleId;
-    /// <summary>服务是否已经释放</summary>
-    private bool _disposed;
-
-    /// <summary>接收定时器日志服务</summary>
-    public TimerService(ILogger<TimerService> logger)
-    {
-        _logger = logger;
-    }
 
     /// <summary>创建一次性定时器并返回可释放句柄</summary>
     public TimerHandle Schedule(TimeSpan delay, DelayType delayType, Action callback, CancellationToken cancellationToken = default, Action<TimerHandle> onCompleted = null)

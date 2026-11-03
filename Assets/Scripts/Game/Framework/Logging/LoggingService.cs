@@ -55,21 +55,6 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
     private int _isDisposed;
 
     /// <summary>
-    /// 日志服务的启动优先级
-    /// </summary>
-    public int Priority => FrameworkSettings.LoggingStartupPriority;
-
-    /// <summary>
-    /// 启动界面显示的服务名称
-    /// </summary>
-    public string Description => "日志服务";
-
-    /// <summary>
-    /// 日志服务在启动进度中的权重
-    /// </summary>
-    public float Weight => FrameworkSettings.LoggingStartupWeight;
-
-    /// <summary>
     /// 创建输出目标 使日志在其他服务启动前即可使用
     /// </summary>
     public LoggingService()
@@ -114,10 +99,50 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
         Application.quitting += Dispose;
     }
 
+    #region 服务生命周期
+
+    /// <summary>
+    /// 日志服务的启动优先级
+    /// </summary>
+    public int Priority => FrameworkSettings.LoggingStartupPriority;
+
+    /// <summary>
+    /// 启动界面显示的服务名称
+    /// </summary>
+    public string Description => "日志服务";
+
+    /// <summary>
+    /// 日志服务在启动进度中的权重
+    /// </summary>
+    public float Weight => FrameworkSettings.LoggingStartupWeight;
+
     /// <summary>
     /// 配合框架启动流程 日志输出已在构造时就绪
     /// </summary>
     public UniTask StartAsync(StartupContext context) => UniTask.CompletedTask;
+
+    /// <summary>
+    /// 停止收集Unity日志 等待已提交的文件日志写完 并允许重复释放
+    /// </summary>
+    public void Dispose()
+    {
+        lock (_sync)
+        {
+            if (Interlocked.Exchange(ref _isDisposed, 1) != 0) return;
+            Application.logMessageReceivedThreaded -= HandleUnityLog;
+            Application.quitting -= Dispose;
+            try
+            {
+                _fileFactory.Dispose();
+            }
+            finally
+            {
+                _consoleFactory.Dispose();
+            }
+        }
+    }
+
+    #endregion
 
     /// <summary>
     /// 按LogType分流 普通日志仅控制台 警告和错误类同时写入文件
@@ -146,27 +171,6 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
             finally
             {
                 t_isForwarding = wasForwarding;
-            }
-        }
-    }
-
-    /// <summary>
-    /// 停止收集Unity日志 等待已提交的文件日志写完 并允许重复释放
-    /// </summary>
-    public void Dispose()
-    {
-        lock (_sync)
-        {
-            if (Interlocked.Exchange(ref _isDisposed, 1) != 0) return;
-            Application.logMessageReceivedThreaded -= HandleUnityLog;
-            Application.quitting -= Dispose;
-            try
-            {
-                _fileFactory.Dispose();
-            }
-            finally
-            {
-                _consoleFactory.Dispose();
             }
         }
     }

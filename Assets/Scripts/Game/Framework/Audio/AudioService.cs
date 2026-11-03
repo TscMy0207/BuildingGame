@@ -74,27 +74,6 @@ internal class AudioService : ISystem, IAudioService, IStartupService
     private bool _wasMusicEnabled;
 
     /// <summary>
-    /// 音频服务启动优先级
-    /// </summary>
-    public int Priority => FrameworkSettings.AudioStartupPriority;
-    /// <summary>
-    /// 启动进度描述
-    /// </summary>
-    public string Description => "音频服务";
-    /// <summary>
-    /// 启动进度权重
-    /// </summary>
-    public float Weight => FrameworkSettings.AudioStartupWeight;
-    /// <summary>
-    /// 当前音乐开关
-    /// </summary>
-    public bool MusicEnabled => _settings.MusicEnabled;
-    /// <summary>
-    /// 当前音效开关
-    /// </summary>
-    public bool SfxEnabled => _settings.SfxEnabled;
-
-    /// <summary>
     /// 创建音频服务并复用框架现有设置与事件
     /// </summary>
     /// <param name="settings">音频设置唯一来源</param>
@@ -106,6 +85,21 @@ internal class AudioService : ISystem, IAudioService, IStartupService
         _resources = resources;
         _eventService = eventService;
     }
+
+    #region 服务生命周期
+
+    /// <summary>
+    /// 音频服务启动优先级
+    /// </summary>
+    public int Priority => FrameworkSettings.AudioStartupPriority;
+    /// <summary>
+    /// 启动进度描述
+    /// </summary>
+    public string Description => "音频服务";
+    /// <summary>
+    /// 启动进度权重
+    /// </summary>
+    public float Weight => FrameworkSettings.AudioStartupWeight;
 
     /// <summary>
     /// 加载宿主并等待Master Audio和PlaylistController完成初始化
@@ -179,6 +173,17 @@ internal class AudioService : ISystem, IAudioService, IStartupService
             _prefabLoaded = false;
         }
     }
+
+    #endregion
+
+    /// <summary>
+    /// 当前音乐开关
+    /// </summary>
+    public bool MusicEnabled => _settings.MusicEnabled;
+    /// <summary>
+    /// 当前音效开关
+    /// </summary>
+    public bool SfxEnabled => _settings.SfxEnabled;
 
     /// <summary>
     /// 使用声音组的变体 随机化和并发规则播放一次音效
