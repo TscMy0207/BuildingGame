@@ -15,9 +15,15 @@ public interface ILogger<T>
 /// <summary>
 /// 保持框架日志调用方式 并将日志交给ZLogger服务
 /// </summary>
-internal sealed class Logger<T> : ILogger<T>
+internal class Logger<T> : ILogger<T>
 {
+    /// <summary>
+    /// 向控制台和文件分发日志的实例服务
+    /// </summary>
     private readonly ILoggingService _loggingService;
+    /// <summary>
+    /// 从泛型参数提取的模块分类名称
+    /// </summary>
     private readonly string _category;
 
     /// <summary>

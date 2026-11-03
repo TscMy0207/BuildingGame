@@ -18,31 +18,55 @@ namespace BuildingGame.EditorTools.KitWrightMcp
     [InitializeOnLoad]
     internal static class AstrBotClientConfigSync
     {
-        /// <summary>固定的AstrBot配置文件路径</summary>
+        /// <summary>
+        /// 固定的AstrBot配置文件路径
+        /// </summary>
         private const string AstrBotConfigPath = @"C:\Software\AstrBot\data\mcp_server.json";
-        /// <summary>BuildingGame独立的MCP连接配置名称</summary>
+        /// <summary>
+        /// BuildingGame独立的MCP连接配置名称
+        /// </summary>
         private const string ServerEntryName = "kitwright-unity-buildinggame";
-        /// <summary>KitWright项目设置的相对路径</summary>
+        /// <summary>
+        /// KitWright项目设置的相对路径
+        /// </summary>
         private const string SettingsRelativePath = "UserSettings/KitWrightMcpSettings.json";
-        /// <summary>项目访问令牌的编辑器偏好键前缀</summary>
+        /// <summary>
+        /// 项目访问令牌的编辑器偏好键前缀
+        /// </summary>
         private const string TokenPreferencePrefix = "KitWright.MCP.ServerToken.";
-        /// <summary>AstrBot使用的MCP传输协议</summary>
+        /// <summary>
+        /// AstrBot使用的MCP传输协议
+        /// </summary>
         private const string DefaultTransport = "streamable_http";
-        /// <summary>缺少项目设置时使用的基础端口</summary>
+        /// <summary>
+        /// 缺少项目设置时使用的基础端口
+        /// </summary>
         private const int DefaultPort = 9535;
-        /// <summary>端口冲突时探测的端口数量</summary>
+        /// <summary>
+        /// 端口冲突时探测的端口数量
+        /// </summary>
         private const int PortFallbackRange = 10;
-        /// <summary>自动同步的最大尝试次数</summary>
+        /// <summary>
+        /// 自动同步的最大尝试次数
+        /// </summary>
         private const int MaxAttempts = 30;
-        /// <summary>自动同步的重试间隔 单位秒</summary>
+        /// <summary>
+        /// 自动同步的重试间隔 单位秒
+        /// </summary>
         private const double RetryDelaySeconds = 1.0d;
 
-        /// <summary>本次编辑器脚本加载后的同步尝试次数</summary>
+        /// <summary>
+        /// 本次编辑器脚本加载后的同步尝试次数
+        /// </summary>
         private static int s_attemptCount;
-        /// <summary>下次尝试同步的编辑器启动时间</summary>
+        /// <summary>
+        /// 下次尝试同步的编辑器启动时间
+        /// </summary>
         private static double s_nextAttemptTime;
 
-        /// <summary>编辑器加载脚本后等待当前项目的MCP服务并同步连接配置</summary>
+        /// <summary>
+        /// 编辑器加载脚本后等待当前项目的MCP服务并同步连接配置
+        /// </summary>
         static AstrBotClientConfigSync()
         {
             EditorApplication.update += WaitForKitWright;

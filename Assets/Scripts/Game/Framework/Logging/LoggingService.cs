@@ -40,6 +40,9 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
     /// 独立的控制台和文件工厂 分别控制格式
     /// </summary>
     private readonly ILoggerFactory _consoleFactory;
+    /// <summary>
+    /// 负责滚动文件输出并在释放时排空后台队列的日志工厂
+    /// </summary>
     private readonly ILoggerFactory _fileFactory;
 
     /// <summary>
@@ -51,7 +54,13 @@ internal class LoggingService : ISystem, IStartupService, ILoggingService
     /// 当前日志目录和会话标识 避免不同运行会话共用文件
     /// </summary>
     private readonly string _directory;
+    /// <summary>
+    /// 本次日志会话的唯一文件名前缀
+    /// </summary>
     private readonly string _sessionName;
+    /// <summary>
+    /// 原子读取的释放标记 阻止关闭后继续提交日志
+    /// </summary>
     private int _isDisposed;
 
     /// <summary>

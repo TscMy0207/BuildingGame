@@ -7,6 +7,9 @@ using YooAsset;
 [AutoRegister]
 internal class ResourcesPackageOptionsFactory : ISystem
 {
+    /// <summary>
+    /// 为指定资源包选择编辑器模拟或离线运行参数
+    /// </summary>
     public InitializePackageOptions Create(string packageName)
     {
         return FrameworkSettings.ResourcesDefaultPlayMode switch
@@ -17,6 +20,9 @@ internal class ResourcesPackageOptionsFactory : ISystem
         };
     }
 
+    /// <summary>
+    /// 通过YooAsset模拟构建结果创建编辑器文件系统参数
+    /// </summary>
     private static InitializePackageOptions CreateEditorSimulateOptions(string packageName)
     {
         var buildResult = EditorSimulateBuildInvoker.Build(packageName, (int)EBundleType.VirtualAssetBundle);
@@ -24,6 +30,9 @@ internal class ResourcesPackageOptionsFactory : ISystem
         return new EditorSimulateModeOptions { EditorFileSystemParameters = fileSystemParameters };
     }
 
+    /// <summary>
+    /// 使用玩家包内置文件系统创建离线加载参数
+    /// </summary>
     private static InitializePackageOptions CreateOfflineOptions()
     {
         var fileSystemParameters = FileSystemParameters.CreateDefaultBuiltinFileSystemParameters();

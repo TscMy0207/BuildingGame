@@ -1,7 +1,7 @@
 /// <summary>
 /// UI面板配置表
 /// </summary>
-public sealed class UIPanelConfig
+public class UIPanelConfig
 {
     /// <summary>
     /// UI键值主键

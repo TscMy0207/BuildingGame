@@ -4,17 +4,27 @@ using VContainer;
 /// <summary>
 /// 验证对象池注入 激活和复用顺序的测试组件
 /// </summary>
-public sealed class PoolProbe : MonoBehaviour, IPooledObject
+public class PoolProbe : MonoBehaviour, IPooledObject
 {
-    /// <summary>首次启用时是否已经完成注入</summary>
+    /// <summary>
+    /// 首次启用时是否已经完成注入
+    /// </summary>
     public bool EnabledAfterInjection { get; private set; }
-    /// <summary>依赖注入次数</summary>
+    /// <summary>
+    /// 依赖注入次数
+    /// </summary>
     public int InjectionCount { get; private set; }
-    /// <summary>本实例取出次数</summary>
+    /// <summary>
+    /// 本实例取出次数
+    /// </summary>
     public int SpawnCount { get; private set; }
-    /// <summary>本实例归还次数</summary>
+    /// <summary>
+    /// 本实例归还次数
+    /// </summary>
     public int DespawnCount { get; private set; }
-    /// <summary>所属容器提供的标记</summary>
+    /// <summary>
+    /// 所属容器提供的标记
+    /// </summary>
     public string ContainerName { get; private set; }
 
     /// <summary>
@@ -47,9 +57,11 @@ public sealed class PoolProbe : MonoBehaviour, IPooledObject
 /// <summary>
 /// 为不同容器提供可区分的测试依赖
 /// </summary>
-public sealed class PoolProbeDependency
+public class PoolProbeDependency
 {
-    /// <summary>容器标记</summary>
+    /// <summary>
+    /// 容器标记
+    /// </summary>
     public string Name { get; }
     /// <summary>
     /// 创建容器标记

@@ -6,10 +6,14 @@ using VContainer;
 using VContainer.Unity;
 using Object = UnityEngine.Object;
 
-/// <summary>加载预制体并将本次资源引用绑定到实例销毁</summary>
+/// <summary>
+/// 加载预制体并将本次资源引用绑定到实例销毁
+/// </summary>
 public static class ResourcesServiceExtensions
 {
-    /// <summary>创建普通实例 销毁对象时自动归还本次加载引用</summary>
+    /// <summary>
+    /// 创建普通实例 销毁对象时自动归还本次加载引用
+    /// </summary>
     /// <param name="resources">资源加载服务</param>
     /// <param name="location">预制体地址</param>
     /// <param name="parent">实例父节点</param>
@@ -21,7 +25,9 @@ public static class ResourcesServiceExtensions
         CancellationToken cancellationToken = default) =>
         LoadAndCreateAsync(resources, location, null, parent, worldPositionStays, cancellationToken);
 
-    /// <summary>创建并注入实例 在Awake前完成依赖注入和引用绑定</summary>
+    /// <summary>
+    /// 创建并注入实例 在Awake前完成依赖注入和引用绑定
+    /// </summary>
     /// <param name="resources">资源加载服务</param>
     /// <param name="location">预制体地址</param>
     /// <param name="resolver">依赖解析器</param>
@@ -37,7 +43,9 @@ public static class ResourcesServiceExtensions
         return LoadAndCreateAsync(resources, location, resolver, parent, worldPositionStays, cancellationToken);
     }
 
-    /// <summary>加载成功后将取得的引用移交给实例创建流程</summary>
+    /// <summary>
+    /// 加载成功后将取得的引用移交给实例创建流程
+    /// </summary>
     private static async UniTask<GameObject> LoadAndCreateAsync(IResourcesAssetLoader resources, string location,
         IObjectResolver resolver, Transform parent, bool worldPositionStays, CancellationToken cancellationToken)
     {

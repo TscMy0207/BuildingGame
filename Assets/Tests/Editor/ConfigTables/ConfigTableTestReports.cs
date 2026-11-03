@@ -7,7 +7,7 @@ using UnityEngine;
 /// 在跨播放模式域重载后仍能保存配置表测试结果
 /// </summary>
 [InitializeOnLoad]
-internal sealed class ConfigTableTestReports : ICallbacks
+internal class ConfigTableTestReports : ICallbacks
 {
     /// <summary>
     /// 当前编辑器域中的测试API实例

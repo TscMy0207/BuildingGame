@@ -14,24 +14,49 @@ using Object = UnityEngine.Object;
 [AutoRegister(typeof(IObjectPoolService), typeof(IStartupService), AsSelf = false)]
 internal class ObjectPoolService : ISystem, IObjectPoolService, IStartupService
 {
-    /// <summary>当前容器的资源加载服务</summary>
+    /// <summary>
+    /// 当前容器的资源加载服务
+    /// </summary>
     private readonly IResourcesAssetLoader _resources;
-    /// <summary>创建实例时使用的容器 不允许跨容器复用</summary>
+    /// <summary>
+    /// 创建实例时使用的容器 不允许跨容器复用
+    /// </summary>
     private readonly IObjectResolver _resolver;
-    /// <summary>生命周期回调异常的日志出口</summary>
+    /// <summary>
+    /// 生命周期回调异常的日志出口
+    /// </summary>
     private readonly ILogger<ObjectPoolService> _logger;
-    /// <summary>初始化中的池也提前登记 以合并同地址的并发请求</summary>
+    /// <summary>
+    /// 初始化中的池也提前登记 以合并同地址的并发请求
+    /// </summary>
     private readonly Dictionary<string, PoolEntry> _pools = new(StringComparer.Ordinal);
-    /// <summary>借出实例的归属 用于阻止重复回收与跨Scope回收</summary>
+    /// <summary>
+    /// 借出实例的归属 用于阻止重复回收与跨Scope回收
+    /// </summary>
     private readonly Dictionary<GameObject, PoolEntry> _rented = new();
-    /// <summary>已经关闭但还在等待资源加载或延迟销毁的清理任务</summary>
+    /// <summary>
+    /// 已经关闭但还在等待资源加载或延迟销毁的清理任务
+    /// </summary>
     private readonly List<PoolEntry> _closing = new();
-    /// <summary>服务创建线程 必须为Unity主线程</summary>
+    /// <summary>
+    /// 服务创建线程 必须为Unity主线程
+    /// </summary>
     private readonly int _mainThreadId = Environment.CurrentManagedThreadId;
-    /// <summary>所属框架或模块的生命周期</summary>
+    /// <summary>
+    /// 所属框架或模块的生命周期
+    /// </summary>
     private CancellationToken _lifetimeToken;
+    /// <summary>
+    /// 对象池已接收服务生命周期令牌后才允许借出实例
+    /// </summary>
     private bool _initialized;
+    /// <summary>
+    /// 释放后拒绝新增池与实例请求
+    /// </summary>
     private bool _disposed;
+    /// <summary>
+    /// 正在执行注入 激活或生命周期通知 阻止回调重入池操作
+    /// </summary>
     private bool _notifying;
 
     /// <summary>
@@ -49,11 +74,17 @@ internal class ObjectPoolService : ISystem, IObjectPoolService, IStartupService
 
     #region 服务生命周期
 
-    /// <summary>在资源服务之后启动</summary>
+    /// <summary>
+    /// 在资源服务之后启动
+    /// </summary>
     public int Priority => FrameworkSettings.ObjectPoolStartupPriority;
-    /// <summary>启动流程显示名称</summary>
+    /// <summary>
+    /// 启动流程显示名称
+    /// </summary>
     public string Description => "对象池服务";
-    /// <summary>启动进度权重</summary>
+    /// <summary>
+    /// 启动进度权重
+    /// </summary>
     public float Weight => FrameworkSettings.ObjectPoolStartupWeight;
 
     /// <summary>
@@ -462,25 +493,43 @@ internal class ObjectPoolService : ISystem, IObjectPoolService, IStartupService
     /// <summary>
     /// 单个资源地址的原生对象池与资源所有权记录
     /// </summary>
-    private sealed class PoolEntry
+    private class PoolEntry
     {
-        /// <summary>池唯一资源地址</summary>
+        /// <summary>
+        /// 池唯一资源地址
+        /// </summary>
         public readonly string Location;
-        /// <summary>可被多个请求等待的初始化结果</summary>
+        /// <summary>
+        /// 可被多个请求等待的初始化结果
+        /// </summary>
         public readonly UniTaskCompletionSource<PoolEntry> Loaded = new();
-        /// <summary>可被Dispose及多次显式清理同时等待的关闭结果</summary>
+        /// <summary>
+        /// 可被Dispose及多次显式清理同时等待的关闭结果
+        /// </summary>
         public readonly UniTaskCompletionSource Cleared = new();
-        /// <summary>所有尚未销毁实例及其创建时收集的回调</summary>
+        /// <summary>
+        /// 所有尚未销毁实例及其创建时收集的回调
+        /// </summary>
         public readonly Dictionary<GameObject, IPooledObject[]> Callbacks = new();
-        /// <summary>池持有的预制体引用</summary>
+        /// <summary>
+        /// 池持有的预制体引用
+        /// </summary>
         public GameObject Prefab;
-        /// <summary>活动实例的默认跨场景父节点</summary>
+        /// <summary>
+        /// 活动实例的默认跨场景父节点
+        /// </summary>
         public GameObject ActiveRoot;
-        /// <summary>始终停用的空闲实例父节点</summary>
+        /// <summary>
+        /// 始终停用的空闲实例父节点
+        /// </summary>
         public GameObject Storage;
-        /// <summary>Unity内置GameObject池</summary>
+        /// <summary>
+        /// Unity内置GameObject池
+        /// </summary>
         public ObjectPool<GameObject> Pool;
-        /// <summary>关闭后禁止新请求生成实例</summary>
+        /// <summary>
+        /// 关闭后禁止新请求生成实例
+        /// </summary>
         public bool Closed;
 
         /// <summary>

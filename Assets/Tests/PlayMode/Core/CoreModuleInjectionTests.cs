@@ -8,10 +8,14 @@ using VContainer;
 using VContainer.Unity;
 using Object = UnityEngine.Object;
 
-/// <summary>通过真实运行时组件验证View依赖注入和对象释放</summary>
-public sealed class CoreModuleInjectionTests
+/// <summary>
+/// 通过真实运行时组件验证View依赖注入和对象释放
+/// </summary>
+public class CoreModuleInjectionTests
 {
-    /// <summary>动态实例化的View获得共享业务系统且销毁View不会提前释放系统</summary>
+    /// <summary>
+    /// 动态实例化的View获得共享业务系统且销毁View不会提前释放系统
+    /// </summary>
     [UnityTest]
     public IEnumerator InstantiatedViewReceivesContainerOwnedSystem()
     {
@@ -45,20 +49,30 @@ public sealed class CoreModuleInjectionTests
         }
     }
 
-    /// <summary>用于运行时注入的业务系统契约</summary>
+    /// <summary>
+    /// 用于运行时注入的业务系统契约
+    /// </summary>
     public interface IProbeSystem { }
 
-    /// <summary>运行时业务数据探针</summary>
+    /// <summary>
+    /// 运行时业务数据探针
+    /// </summary>
     [AutoRegister]
     public class ProbeModel : ModuleModel { }
 
-    /// <summary>运行时业务系统探针</summary>
+    /// <summary>
+    /// 运行时业务系统探针
+    /// </summary>
     [AutoRegister(typeof(IProbeSystem))]
     public class ProbeSystem : ModuleSystem, IProbeSystem
     {
-        /// <summary>注入的数据实例</summary>
+        /// <summary>
+        /// 注入的数据实例
+        /// </summary>
         public ModuleModel Model { get; }
-        /// <summary>接收容器创建的业务数据</summary>
+        /// <summary>
+        /// 接收容器创建的业务数据
+        /// </summary>
         /// <param name="model">业务数据探针</param>
         public ProbeSystem(ProbeModel model) => Model = model;
     }

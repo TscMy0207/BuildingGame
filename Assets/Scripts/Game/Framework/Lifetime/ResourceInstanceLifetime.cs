@@ -5,22 +5,32 @@ using VContainer;
 using VContainer.Unity;
 using Object = UnityEngine.Object;
 
-/// <summary>独占一次预制体加载引用 在对应实例销毁后归还</summary>
-internal sealed class ResourceInstanceLifetime : LifetimeHandle
+/// <summary>
+/// 独占一次预制体加载引用 在对应实例销毁后归还
+/// </summary>
+internal class ResourceInstanceLifetime : LifetimeHandle
 {
-    /// <summary>本次引用所属的加载器</summary>
+    /// <summary>
+    /// 本次引用所属的加载器
+    /// </summary>
     private IResourcesAssetLoader _resources;
-    /// <summary>加载时使用的原始地址</summary>
+    /// <summary>
+    /// 加载时使用的原始地址
+    /// </summary>
     private readonly string _location;
 
-    /// <summary>接管已经加载成功的一次引用</summary>
+    /// <summary>
+    /// 接管已经加载成功的一次引用
+    /// </summary>
     private ResourceInstanceLifetime(IResourcesAssetLoader resources, string location)
     {
         _resources = resources;
         _location = location;
     }
 
-    /// <summary>在未激活节点下创建并绑定引用 失败时同时回滚实例和引用</summary>
+    /// <summary>
+    /// 在未激活节点下创建并绑定引用 失败时同时回滚实例和引用
+    /// </summary>
     /// <param name="resources">引用所属服务</param>
     /// <param name="location">已加载的资源地址</param>
     /// <param name="prefab">加载结果</param>
@@ -71,7 +81,9 @@ internal sealed class ResourceInstanceLifetime : LifetimeHandle
         }
     }
 
-    /// <summary>只归还当前实例取得的引用 其他实例和对象池各自保有所有权</summary>
+    /// <summary>
+    /// 只归还当前实例取得的引用 其他实例和对象池各自保有所有权
+    /// </summary>
     protected override void OnDispose()
     {
         var resources = _resources;

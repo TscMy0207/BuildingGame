@@ -13,31 +13,53 @@ using UnityEngine.SceneManagement;
 [AutoRegister(typeof(ICameraService), typeof(IStartupService), AsSelf = false)]
 internal class CameraService : ISystem, ICameraService, IStartupService
 {
-    /// <summary>当前宿主下由服务接管的镜头及原始状态</summary>
+    /// <summary>
+    /// 当前宿主下由服务接管的镜头及原始状态
+    /// </summary>
     private readonly Dictionary<string, CameraState> _cameras = new(StringComparer.Ordinal);
-    /// <summary>当前借用的场景宿主</summary>
+    /// <summary>
+    /// 当前借用的场景宿主
+    /// </summary>
     private CameraServiceHost _host;
-    /// <summary>绑定宿主之前的默认混合配置</summary>
+    /// <summary>
+    /// 绑定宿主之前的默认混合配置
+    /// </summary>
     private CinemachineBlendDefinition _originalBlend;
-    /// <summary>最近一次接受的切换请求</summary>
+    /// <summary>
+    /// 最近一次接受的切换请求
+    /// </summary>
     private string _currentCameraId;
-    /// <summary>基础服务启动上下文中的生命周期令牌</summary>
+    /// <summary>
+    /// 基础服务启动上下文中的生命周期令牌
+    /// </summary>
     private CancellationToken _lifetimeToken;
-    /// <summary>服务是否已经启动</summary>
+    /// <summary>
+    /// 服务是否已经启动
+    /// </summary>
     private bool _started;
-    /// <summary>服务是否已经永久释放</summary>
+    /// <summary>
+    /// 服务是否已经永久释放
+    /// </summary>
     private bool _disposed;
 
     #region 服务生命周期
 
-    /// <summary>摄像机服务启动顺序</summary>
+    /// <summary>
+    /// 摄像机服务启动顺序
+    /// </summary>
     public int Priority => FrameworkSettings.CameraStartupPriority;
-    /// <summary>启动进度说明</summary>
+    /// <summary>
+    /// 启动进度说明
+    /// </summary>
     public string Description => "摄像机服务";
-    /// <summary>启动进度权重</summary>
+    /// <summary>
+    /// 启动进度权重
+    /// </summary>
     public float Weight => FrameworkSettings.CameraStartupWeight;
 
-    /// <summary>监听场景生命周期并尝试绑定主摄像机上的宿主 无宿主时保持待绑定状态</summary>
+    /// <summary>
+    /// 监听场景生命周期并尝试绑定主摄像机上的宿主 无宿主时保持待绑定状态
+    /// </summary>
     /// <param name="context">启动取消令牌和进度回调</param>
     /// <returns>同步完成的启动任务</returns>
     public UniTask StartAsync(StartupContext context)
@@ -63,7 +85,9 @@ internal class CameraService : ISystem, ICameraService, IStartupService
         }
     }
 
-    /// <summary>解除场景监听并恢复所有借用对象 可重复调用且不销毁宿主</summary>
+    /// <summary>
+    /// 解除场景监听并恢复所有借用对象 可重复调用且不销毁宿主
+    /// </summary>
     public void Dispose()
     {
         if (_disposed) return;
@@ -75,15 +99,23 @@ internal class CameraService : ISystem, ICameraService, IStartupService
 
     #endregion
 
-    /// <summary>服务生命周期与宿主组件是否均可用</summary>
+    /// <summary>
+    /// 服务生命周期与宿主组件是否均可用
+    /// </summary>
     public bool IsReady => _started && !_disposed && !_lifetimeToken.IsCancellationRequested && _host != null && _host.IsAvailable;
-    /// <summary>当前可用的输出摄像机</summary>
+    /// <summary>
+    /// 当前可用的输出摄像机
+    /// </summary>
     public Camera OutputCamera => IsReady ? _host.OutputCamera : null;
-    /// <summary>服务请求的有效目标镜头标识 不替代Brain实际输出状态</summary>
+    /// <summary>
+    /// 服务请求的有效目标镜头标识 不替代Brain实际输出状态
+    /// </summary>
     public string CurrentCameraId => IsReady && _currentCameraId != null &&
         _cameras.TryGetValue(_currentCameraId, out var state) && state.Camera != null ? _currentCameraId : null;
 
-    /// <summary>校验全部预设后替换宿主 避免无效配置破坏当前绑定</summary>
+    /// <summary>
+    /// 校验全部预设后替换宿主 避免无效配置破坏当前绑定
+    /// </summary>
     /// <param name="host">待绑定的场景宿主</param>
     public void BindHost(CameraServiceHost host)
     {
@@ -121,14 +153,18 @@ internal class CameraService : ISystem, ICameraService, IStartupService
         if (!string.IsNullOrWhiteSpace(host.DefaultCameraId)) SwitchTo(host.DefaultCameraId);
     }
 
-    /// <summary>按宿主身份解除绑定 避免旧场景回调解绑新宿主</summary>
+    /// <summary>
+    /// 按宿主身份解除绑定 避免旧场景回调解绑新宿主
+    /// </summary>
     /// <param name="host">请求解绑的宿主</param>
     public void UnbindHost(CameraServiceHost host)
     {
         if (ReferenceEquals(host, _host)) ReleaseHost();
     }
 
-    /// <summary>接管动态镜头并保存接管前的目标与优先级</summary>
+    /// <summary>
+    /// 接管动态镜头并保存接管前的目标与优先级
+    /// </summary>
     /// <param name="id">唯一镜头标识</param>
     /// <param name="camera">顶层虚拟镜头</param>
     public void RegisterCamera(string id, CinemachineVirtualCameraBase camera)
@@ -140,7 +176,9 @@ internal class CameraService : ISystem, ICameraService, IStartupService
         SetPriority(camera, _host.StandbyPriority);
     }
 
-    /// <summary>归还镜头原始状态 当前镜头移除后选择宿主默认镜头或其他可用镜头</summary>
+    /// <summary>
+    /// 归还镜头原始状态 当前镜头移除后选择宿主默认镜头或其他可用镜头
+    /// </summary>
     /// <param name="id">镜头标识</param>
     /// <returns>是否注销了已有镜头</returns>
     public bool UnregisterCamera(string id)
@@ -156,7 +194,9 @@ internal class CameraService : ISystem, ICameraService, IStartupService
         return true;
     }
 
-    /// <summary>通过优先级选择镜头 保留Cinemachine的混合和Timeline控制行为</summary>
+    /// <summary>
+    /// 通过优先级选择镜头 保留Cinemachine的混合和Timeline控制行为
+    /// </summary>
     /// <param name="id">目标镜头标识</param>
     /// <returns>是否接受有效请求</returns>
     public bool SwitchTo(string id)
@@ -169,7 +209,9 @@ internal class CameraService : ISystem, ICameraService, IStartupService
         return true;
     }
 
-    /// <summary>向注册镜头转发跟随及注视目标 具体构图由该镜头的管线组件决定</summary>
+    /// <summary>
+    /// 向注册镜头转发跟随及注视目标 具体构图由该镜头的管线组件决定
+    /// </summary>
     /// <param name="id">镜头标识</param>
     /// <param name="follow">跟随目标 可为空</param>
     /// <param name="lookAt">注视目标 可为空</param>
@@ -182,7 +224,9 @@ internal class CameraService : ISystem, ICameraService, IStartupService
         return true;
     }
 
-    /// <summary>设置默认混合时长 不修改宿主配置的逐镜头混合规则</summary>
+    /// <summary>
+    /// 设置默认混合时长 不修改宿主配置的逐镜头混合规则
+    /// </summary>
     /// <param name="seconds">非负有限秒数</param>
     /// <returns>是否接受有效设置</returns>
     public bool SetDefaultBlendDuration(float seconds)
@@ -193,7 +237,9 @@ internal class CameraService : ISystem, ICameraService, IStartupService
         return true;
     }
 
-    /// <summary>根据宿主震动源的形状和频道生成信号 拒绝未配置的旧版信号源</summary>
+    /// <summary>
+    /// 根据宿主震动源的形状和频道生成信号 拒绝未配置的旧版信号源
+    /// </summary>
     /// <param name="strength">正数强度倍率</param>
     /// <returns>是否生成震动信号</returns>
     public bool Shake(float strength = 1f)
@@ -208,7 +254,9 @@ internal class CameraService : ISystem, ICameraService, IStartupService
         return true;
     }
 
-    /// <summary>检查标识 组件重复 顶层归属和输出层遮罩 不修改任何对象</summary>
+    /// <summary>
+    /// 检查标识 组件重复 顶层归属和输出层遮罩 不修改任何对象
+    /// </summary>
     /// <param name="cameras">需要检查重复的镜头集合</param>
     /// <param name="host">目标宿主</param>
     /// <param name="id">镜头标识</param>
@@ -226,7 +274,9 @@ internal class CameraService : ISystem, ICameraService, IStartupService
             throw new InvalidOperationException($"镜头所在层不在输出摄像机的剔除遮罩中:{id}");
     }
 
-    /// <summary>获取生命周期与宿主均有效的注册镜头</summary>
+    /// <summary>
+    /// 获取生命周期与宿主均有效的注册镜头
+    /// </summary>
     /// <param name="id">镜头标识</param>
     /// <param name="state">注册状态</param>
     /// <returns>是否找到有效镜头</returns>
@@ -236,7 +286,9 @@ internal class CameraService : ISystem, ICameraService, IStartupService
         return IsReady && !string.IsNullOrWhiteSpace(id) && _cameras.TryGetValue(id, out state) && state.Camera != null;
     }
 
-    /// <summary>修改优先级后立即更新Cinemachine队列 避免同一帧连续切换仍使用旧排序</summary>
+    /// <summary>
+    /// 修改优先级后立即更新Cinemachine队列 避免同一帧连续切换仍使用旧排序
+    /// </summary>
     /// <param name="camera">目标镜头</param>
     /// <param name="priority">新的优先级</param>
     private static void SetPriority(CinemachineVirtualCameraBase camera, int priority)
@@ -245,7 +297,9 @@ internal class CameraService : ISystem, ICameraService, IStartupService
         camera.MoveToTopOfPrioritySubqueue();
     }
 
-    /// <summary>释放当前绑定并恢复原始配置 Unity已销毁的组件仅清除托管引用</summary>
+    /// <summary>
+    /// 释放当前绑定并恢复原始配置 Unity已销毁的组件仅清除托管引用
+    /// </summary>
     private void ReleaseHost()
     {
         if (!ReferenceEquals(_host, null))
@@ -260,7 +314,9 @@ internal class CameraService : ISystem, ICameraService, IStartupService
         _currentCameraId = null;
     }
 
-    /// <summary>在没有有效宿主时绑定主摄像机 避免叠加场景抢占已有输出</summary>
+    /// <summary>
+    /// 在没有有效宿主时绑定主摄像机 避免叠加场景抢占已有输出
+    /// </summary>
     private void TryBindMainCamera()
     {
         if (IsReady || _disposed || _lifetimeToken.IsCancellationRequested) return;
@@ -268,12 +324,16 @@ internal class CameraService : ISystem, ICameraService, IStartupService
         if (camera != null && camera.TryGetComponent<CameraServiceHost>(out var host) && host.IsAvailable) BindHost(host);
     }
 
-    /// <summary>场景加载后尝试绑定其主摄像机</summary>
+    /// <summary>
+    /// 场景加载后尝试绑定其主摄像机
+    /// </summary>
     /// <param name="scene">加载完成的场景</param>
     /// <param name="mode">场景加载方式</param>
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode) => TryBindMainCamera();
 
-    /// <summary>卸载时移除跨场景注册的失效镜头 并尝试接入剩余场景的宿主</summary>
+    /// <summary>
+    /// 卸载时移除跨场景注册的失效镜头 并尝试接入剩余场景的宿主
+    /// </summary>
     /// <param name="scene">卸载完成的场景</param>
     private void OnSceneUnloaded(Scene scene)
     {
@@ -284,11 +344,15 @@ internal class CameraService : ISystem, ICameraService, IStartupService
         TryBindMainCamera();
     }
 
-    /// <summary>宿主停用时及时归还其镜头状态</summary>
+    /// <summary>
+    /// 宿主停用时及时归还其镜头状态
+    /// </summary>
     /// <param name="host">停用的宿主</param>
     private void OnHostUnavailable(CameraServiceHost host) => UnbindHost(host);
 
-    /// <summary>优先恢复默认镜头 否则选择剩余集合中的可用镜头</summary>
+    /// <summary>
+    /// 优先恢复默认镜头 否则选择剩余集合中的可用镜头
+    /// </summary>
     private void SelectFallbackCamera()
     {
         if (!IsReady || SwitchTo(_host.DefaultCameraId)) return;
@@ -296,7 +360,9 @@ internal class CameraService : ISystem, ICameraService, IStartupService
             if (SwitchTo(pair.Key)) return;
     }
 
-    /// <summary>对需要强约束的注册操作报告生命周期错误</summary>
+    /// <summary>
+    /// 对需要强约束的注册操作报告生命周期错误
+    /// </summary>
     private void EnsureStarted()
     {
         if (_disposed) throw new ObjectDisposedException(nameof(CameraService));
@@ -304,24 +370,38 @@ internal class CameraService : ISystem, ICameraService, IStartupService
         _lifetimeToken.ThrowIfCancellationRequested();
     }
 
-    /// <summary>拒绝会污染镜头参数的非有限浮点数</summary>
+    /// <summary>
+    /// 拒绝会污染镜头参数的非有限浮点数
+    /// </summary>
     /// <param name="value">待检查数值</param>
     /// <returns>是否为有限值</returns>
     private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
-    /// <summary>镜头借用期间的原始优先级与目标快照</summary>
-    private sealed class CameraState
+    /// <summary>
+    /// 镜头借用期间的原始优先级与目标快照
+    /// </summary>
+    private class CameraState
     {
-        /// <summary>被借用的镜头组件</summary>
+        /// <summary>
+        /// 被借用的镜头组件
+        /// </summary>
         internal CinemachineVirtualCameraBase Camera { get; }
-        /// <summary>接管前的优先级</summary>
+        /// <summary>
+        /// 接管前的优先级
+        /// </summary>
         private readonly int _priority;
-        /// <summary>接管前的跟随目标</summary>
+        /// <summary>
+        /// 接管前的跟随目标
+        /// </summary>
         private readonly Transform _follow;
-        /// <summary>接管前的注视目标</summary>
+        /// <summary>
+        /// 接管前的注视目标
+        /// </summary>
         private readonly Transform _lookAt;
 
-        /// <summary>保存镜头原始配置</summary>
+        /// <summary>
+        /// 保存镜头原始配置
+        /// </summary>
         /// <param name="camera">需要接管的镜头</param>
         internal CameraState(CinemachineVirtualCameraBase camera)
         {
@@ -331,7 +411,9 @@ internal class CameraService : ISystem, ICameraService, IStartupService
             _lookAt = camera.LookAt;
         }
 
-        /// <summary>恢复仍存活的镜头 并清除已销毁目标对应的Unity空引用</summary>
+        /// <summary>
+        /// 恢复仍存活的镜头 并清除已销毁目标对应的Unity空引用
+        /// </summary>
         internal void Restore()
         {
             if (Camera == null) return;

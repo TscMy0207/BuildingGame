@@ -10,13 +10,19 @@ using VContainer;
 /// <summary>
 /// 验证对象池与项目现有YooAsset资源包的实际加载和释放链路
 /// </summary>
-public sealed class ObjectPoolResourceTests
+public class ObjectPoolResourceTests
 {
-    /// <summary>本次运行的容器</summary>
+    /// <summary>
+    /// 本次运行的容器
+    /// </summary>
     private IObjectResolver _container;
-    /// <summary>项目真实资源服务</summary>
+    /// <summary>
+    /// 项目真实资源服务
+    /// </summary>
     private IResourcesService _resources;
-    /// <summary>项目真实对象池服务</summary>
+    /// <summary>
+    /// 项目真实对象池服务
+    /// </summary>
     private IObjectPoolService _pool;
 
     /// <summary>

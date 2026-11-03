@@ -10,32 +10,90 @@ internal static class FrameworkSettings
     // Priority越小越早启动 相同Priority之间的顺序取决于注册顺序
     // Weight为0到1 表示该服务在总进度中占的比例 总和会自动归一化
     // Weight为0表示该服务不参与进度条计算
+    /// <summary>
+    /// 日志服务最先启动以记录后续服务的启动信息
+    /// </summary>
     internal const int LoggingStartupPriority = 0;
+    /// <summary>
+    /// 日志服务在总体启动进度中的权重
+    /// </summary>
     internal const float LoggingStartupWeight = 0.1f;
+    /// <summary>
+    /// 资源服务在日志服务之后初始化资源包
+    /// </summary>
     internal const int ResourcesStartupPriority = 1;
+    /// <summary>
+    /// 资源包初始化在总体启动进度中的权重
+    /// </summary>
     internal const float ResourcesStartupWeight = 0.2f;
+    /// <summary>
+    /// 配置表在资源服务就绪后加载
+    /// </summary>
     internal const int ConfigTableStartupPriority = 2;
+    /// <summary>
+    /// 配置表加载在总体启动进度中的权重
+    /// </summary>
     internal const float ConfigTableStartupWeight = 0.1f;
+    /// <summary>
+    /// UI服务在资源与配置表就绪后创建根节点
+    /// </summary>
     internal const int UIStartupPriority = 3;
+    /// <summary>
+    /// UI初始化在总体启动进度中的权重
+    /// </summary>
     internal const float UIStartupWeight = 0.1f;
+    /// <summary>
+    /// 事件服务在音频设置等事件使用者之前启动
+    /// </summary>
     internal const int EventStartupPriority = 1;
+    /// <summary>
+    /// 事件服务不占用总体启动进度
+    /// </summary>
     internal const float EventStartupWeight = 0f;
+    /// <summary>
+    /// 存档服务在数据处理器依赖就绪后恢复存档
+    /// </summary>
     internal const int SaveStartupPriority = 3;
+    /// <summary>
+    /// 存档恢复在总体启动进度中的权重
+    /// </summary>
     internal const float SaveStartupWeight = 0.05f;
+    /// <summary>
+    /// 定时器在业务服务使用前完成启动
+    /// </summary>
     internal const int TimerStartupPriority = 1;
+    /// <summary>
+    /// 定时器服务不占用总体启动进度
+    /// </summary>
     internal const float TimerStartupWeight = 0f;
+    /// <summary>
+    /// 音频服务在资源与事件服务就绪后初始化宿主
+    /// </summary>
     internal const int AudioStartupPriority = 2;
+    /// <summary>
+    /// 音频宿主加载在总体启动进度中的权重
+    /// </summary>
     internal const float AudioStartupWeight = 0.05f;
-    /// <summary>摄像机服务在业务模块启动前接入场景</summary>
+    /// <summary>
+    /// 摄像机服务在业务模块启动前接入场景
+    /// </summary>
     internal const int CameraStartupPriority = 3;
-    /// <summary>摄像机宿主为场景对象 无需分配资源加载进度</summary>
+    /// <summary>
+    /// 摄像机宿主为场景对象 无需分配资源加载进度
+    /// </summary>
     internal const float CameraStartupWeight = 0f;
 
-    /// <summary>对象池在资源服务之后启动</summary>
+    /// <summary>
+    /// 对象池在资源服务之后启动
+    /// </summary>
     internal const int ObjectPoolStartupPriority = 2;
-    /// <summary>对象池按需创建 启动不占加载进度</summary>
+    /// <summary>
+    /// 对象池按需创建 启动不占加载进度
+    /// </summary>
     internal const float ObjectPoolStartupWeight = 0f;
-    /// <summary>每个预制体池最多保留的空闲实例数 不限制同时借出数量</summary>
+    /// <summary>
+    /// 每个预制体池最多保留的空闲实例数 不限制同时借出数量
+    /// </summary>
     internal const int ObjectPoolMaxInactiveCount = 64;
 
     /// <summary>
@@ -49,6 +107,9 @@ internal static class FrameworkSettings
 
     // 资源包配置
     // 本地资源包名 对应BundleCollectorSetting中的包名
+    /// <summary>
+    /// 启动时初始化的本地资源包 名称必须与资源采集配置一致
+    /// </summary>
     internal static IReadOnlyList<string> ResourcesLocalPackageNames { get; } = new[] { "FrameworkConfig", "FrameworkAudio" };
     /// <summary>
     /// 本地资源包清单加载超时时间 单位秒
@@ -56,8 +117,14 @@ internal static class FrameworkSettings
     internal const int ResourcesManifestLoadTimeout = 60;
     // 默认使用的YooAsset运行模式
 #if UNITY_EDITOR
+    /// <summary>
+    /// 当前编译目标使用的资源运行模式 编辑器模拟加载 玩家读取内置资源
+    /// </summary>
     internal const ResourcesPlayMode ResourcesDefaultPlayMode = ResourcesPlayMode.EditorSimulate;
 #else
+    /// <summary>
+    /// 当前编译目标使用的资源运行模式 编辑器模拟加载 玩家读取内置资源
+    /// </summary>
     internal const ResourcesPlayMode ResourcesDefaultPlayMode = ResourcesPlayMode.Offline;
 #endif
 
@@ -76,15 +143,28 @@ internal static class FrameworkSettings
     /// </summary>
     internal const string FrameworkConfigLocation = "FrameworkConfig/Assets/GameData/ConfigTables/Framework";
 
-    /// <summary>当前Easy Save存档的容器格式版本</summary>
+    /// <summary>
+    /// 当前Easy Save存档的容器格式版本
+    /// </summary>
     internal const int SaveFormatVersion = 3;
 
-    /// <summary>允许迁移的旧JSON存档格式版本</summary>
+    /// <summary>
+    /// 允许迁移的旧JSON存档格式版本
+    /// </summary>
     internal const int LegacySaveFormatVersion = 2;
 }
 
+/// <summary>
+/// 资源包初始化支持的运行模式
+/// </summary>
 internal enum ResourcesPlayMode
 {
+    /// <summary>
+    /// 使用编辑器模拟构建的资源目录
+    /// </summary>
     EditorSimulate,
+    /// <summary>
+    /// 仅使用随玩家包分发的内置资源
+    /// </summary>
     Offline,
 }

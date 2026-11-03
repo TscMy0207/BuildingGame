@@ -35,7 +35,7 @@ public interface IServiceStartupCoordinator
 /// <summary>
 /// 基础服务启动上下文
 /// </summary>
-public sealed class StartupContext
+public class StartupContext
 {
     /// <summary>
     /// 基础服务生命周期取消令牌
@@ -47,6 +47,9 @@ public sealed class StartupContext
     /// </summary>
     public Action<float, string> ReportProgress { get; }
 
+    /// <summary>
+    /// 传递服务生命周期令牌和可选的内部进度回调
+    /// </summary>
     public StartupContext(CancellationToken lifetimeToken, Action<float, string> reportProgress)
     {
         LifetimeToken = lifetimeToken;
@@ -60,19 +63,49 @@ public sealed class StartupContext
 [AutoRegister(typeof(IServiceStartupCoordinator), AsSelf = false)]
 internal class ServiceStartupCoordinator : ISystem, IServiceStartupCoordinator, IDisposable
 {
+    /// <summary>
+    /// 按优先级稳定排序的启动服务列表 同优先级保留注册顺序
+    /// </summary>
     private readonly IReadOnlyList<IStartupService> m_services;
+    /// <summary>
+    /// 记录启动失败和取消期间的清理异常
+    /// </summary>
     private readonly ILogger<ServiceStartupCoordinator> m_logger;
+    /// <summary>
+    /// 协调器拥有的取消源 在释放时取消并销毁
+    /// </summary>
     private readonly CancellationTokenSource m_lifetimeCancellation = new();
+    /// <summary>
+    /// 供全部启动服务共享的协调器生命周期令牌
+    /// </summary>
     private readonly CancellationToken m_lifetimeToken;
 
+    /// <summary>
+    /// 判断启动权重总和是否近似为一的容差
+    /// </summary>
     private const float WeightEpsilon = 0.001f;
 
+    /// <summary>
+    /// 将服务权重归一化为总体进度比例的缩放系数
+    /// </summary>
     private float m_weightScale;
 
+    /// <summary>
+    /// 通知总体进度与当前启动步骤
+    /// </summary>
     public event Action<float, string> ProgressChanged;
+    /// <summary>
+    /// 通知失败的服务描述和异常原因
+    /// </summary>
     public event Action<string, string> Failed;
+    /// <summary>
+    /// 全部服务启动成功后通知调用方
+    /// </summary>
     public event Action Completed;
 
+    /// <summary>
+    /// 收集全部启动服务并按优先级稳定排序
+    /// </summary>
     public ServiceStartupCoordinator(IEnumerable<IStartupService> services, ILogger<ServiceStartupCoordinator> logger)
     {
         m_services = services.AsValueEnumerable().OrderBy(service => service.Priority).ToList();
@@ -80,6 +113,9 @@ internal class ServiceStartupCoordinator : ISystem, IServiceStartupCoordinator, 
         m_lifetimeToken = m_lifetimeCancellation.Token;
     }
 
+    /// <summary>
+    /// 检查生命周期并按归一化权重串行启动全部服务
+    /// </summary>
     public async UniTask StartAsync()
     {
         if (m_lifetimeToken.IsCancellationRequested)
@@ -155,6 +191,9 @@ internal class ServiceStartupCoordinator : ISystem, IServiceStartupCoordinator, 
         Completed?.Invoke();
     }
 
+    /// <summary>
+    /// 取消服务生命周期并按启动列表逆序释放服务及取消源
+    /// </summary>
     public void Dispose()
     {
         if (m_lifetimeToken.IsCancellationRequested)

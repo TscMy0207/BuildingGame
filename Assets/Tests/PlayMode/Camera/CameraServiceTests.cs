@@ -10,25 +10,43 @@ using UnityEngine.TestTools;
 using VContainer;
 using Object = UnityEngine.Object;
 
-/// <summary>通过实际Cinemachine组件验证镜头输出 混合 震动及生命周期</summary>
-public sealed class CameraServiceTests
+/// <summary>
+/// 通过实际Cinemachine组件验证镜头输出 混合 震动及生命周期
+/// </summary>
+public class CameraServiceTests
 {
-    /// <summary>测试持有的框架容器</summary>
+    /// <summary>
+    /// 测试持有的框架容器
+    /// </summary>
     private IObjectResolver _container;
-    /// <summary>容器提供的真实摄像机服务</summary>
+    /// <summary>
+    /// 容器提供的真实摄像机服务
+    /// </summary>
     private ICameraService _service;
-    /// <summary>借用的测试场景宿主</summary>
+    /// <summary>
+    /// 借用的测试场景宿主
+    /// </summary>
     private CameraServiceHost _host;
-    /// <summary>使用手动更新以便验证最终输出的镜头驱动器</summary>
+    /// <summary>
+    /// 使用手动更新以便验证最终输出的镜头驱动器
+    /// </summary>
     private CinemachineBrain _brain;
-    /// <summary>第一个已注册镜头</summary>
+    /// <summary>
+    /// 第一个已注册镜头
+    /// </summary>
     private CinemachineVirtualCamera _first;
-    /// <summary>第二个已注册镜头</summary>
+    /// <summary>
+    /// 第二个已注册镜头
+    /// </summary>
     private CinemachineVirtualCamera _second;
-    /// <summary>测试创建的对象 结束时统一销毁</summary>
+    /// <summary>
+    /// 测试创建的对象 结束时统一销毁
+    /// </summary>
     private readonly List<GameObject> _objects = new();
 
-    /// <summary>只启动摄像机服务 避免依赖尚未配置的UI与业务启动入口</summary>
+    /// <summary>
+    /// 只启动摄像机服务 避免依赖尚未配置的UI与业务启动入口
+    /// </summary>
     [SetUp]
     public void SetUp()
     {
@@ -49,7 +67,9 @@ public sealed class CameraServiceTests
         CinemachineImpulseManager.Instance.Clear();
     }
 
-    /// <summary>先归还借用状态再销毁对象 防止污染其他测试和场景</summary>
+    /// <summary>
+    /// 先归还借用状态再销毁对象 防止污染其他测试和场景
+    /// </summary>
     /// <returns>等待Unity延迟销毁完成</returns>
     [UnityTearDown]
     public IEnumerator TearDown()
@@ -63,7 +83,9 @@ public sealed class CameraServiceTests
         LogAssert.NoUnexpectedReceived();
     }
 
-    /// <summary>验证切换真正改变Brain输出 且非零时长产生并完成混合</summary>
+    /// <summary>
+    /// 验证切换真正改变Brain输出 且非零时长产生并完成混合
+    /// </summary>
     /// <returns>逐帧驱动真实镜头混合</returns>
     [UnityTest]
     public IEnumerator SwitchingChangesOutputAndCompletesBlend()
@@ -90,7 +112,9 @@ public sealed class CameraServiceTests
         Assert.That(Vector3.Distance(_service.OutputCamera.transform.position, _second.transform.position), Is.LessThan(0.001f));
     }
 
-    /// <summary>验证跟随目标通过Transposer影响真实输出 释放后清除运行期目标并恢复原配置</summary>
+    /// <summary>
+    /// 验证跟随目标通过Transposer影响真实输出 释放后清除运行期目标并恢复原配置
+    /// </summary>
     /// <returns>等待跟随管线更新</returns>
     [UnityTest]
     public IEnumerator TargetsDriveOutputAndDisposalRestoresBorrowedState()
@@ -120,7 +144,9 @@ public sealed class CameraServiceTests
         Assert.Throws<ObjectDisposedException>(() => _service.BindHost(_host));
     }
 
-    /// <summary>验证重复注册及无效参数不会改变当前镜头 停用镜头不能被请求切换</summary>
+    /// <summary>
+    /// 验证重复注册及无效参数不会改变当前镜头 停用镜头不能被请求切换
+    /// </summary>
     [Test]
     public void InvalidRequestsPreserveCurrentSelection()
     {
@@ -140,7 +166,9 @@ public sealed class CameraServiceTests
         Assert.That(_service.UnregisterCamera("First"), Is.False);
     }
 
-    /// <summary>验证宿主停用时即时解绑 新宿主不会被旧宿主的解绑请求影响</summary>
+    /// <summary>
+    /// 验证宿主停用时即时解绑 新宿主不会被旧宿主的解绑请求影响
+    /// </summary>
     [Test]
     public void HostDisableAndReplacementReleaseReferences()
     {
@@ -156,7 +184,9 @@ public sealed class CameraServiceTests
         Assert.That(_service.OutputCamera, Is.SameAs(replacement.OutputCamera));
     }
 
-    /// <summary>验证重复容器不能接管已有宿主 失败者释放后不会影响原服务</summary>
+    /// <summary>
+    /// 验证重复容器不能接管已有宿主 失败者释放后不会影响原服务
+    /// </summary>
     [Test]
     public void DuplicateServiceCannotTakeAnOwnedHost()
     {
@@ -171,7 +201,9 @@ public sealed class CameraServiceTests
         Assert.That(_service.SwitchTo("First"), Is.True);
     }
 
-    /// <summary>验证卸载动态镜头所在场景后自动移除失效引用并选择存活镜头</summary>
+    /// <summary>
+    /// 验证卸载动态镜头所在场景后自动移除失效引用并选择存活镜头
+    /// </summary>
     /// <returns>等待叠加场景卸载</returns>
     [UnityTest]
     public IEnumerator SceneUnloadRemovesDynamicCameraAndSelectsFallback()
@@ -188,7 +220,9 @@ public sealed class CameraServiceTests
         Assert.That(_service.IsReady, Is.True);
     }
 
-    /// <summary>验证震动源经过真实ImpulseListener影响镜头输出</summary>
+    /// <summary>
+    /// 验证震动源经过真实ImpulseListener影响镜头输出
+    /// </summary>
     /// <returns>逐帧采样实际震动</returns>
     [UnityTest]
     public IEnumerator ShakeProducesImpulseAndMovesOutput()
@@ -216,7 +250,9 @@ public sealed class CameraServiceTests
         Assert.That(moved, Is.True, "震动必须实际影响输出摄像机");
     }
 
-    /// <summary>创建由测试持有的临时对象</summary>
+    /// <summary>
+    /// 创建由测试持有的临时对象
+    /// </summary>
     /// <param name="name">对象名称</param>
     /// <returns>临时对象</returns>
     private GameObject CreateObject(string name)
@@ -226,12 +262,16 @@ public sealed class CameraServiceTests
         return instance;
     }
 
-    /// <summary>创建带有输出组件的场景宿主</summary>
+    /// <summary>
+    /// 创建带有输出组件的场景宿主
+    /// </summary>
     /// <param name="name">对象名称</param>
     /// <returns>宿主组件</returns>
     private CameraServiceHost CreateHost(string name) => CreateObject(name).AddComponent<CameraServiceHost>();
 
-    /// <summary>创建具有可观察位置及原始优先级的虚拟镜头</summary>
+    /// <summary>
+    /// 创建具有可观察位置及原始优先级的虚拟镜头
+    /// </summary>
     /// <param name="name">对象名称</param>
     /// <param name="position">镜头位置</param>
     /// <returns>虚拟镜头组件</returns>

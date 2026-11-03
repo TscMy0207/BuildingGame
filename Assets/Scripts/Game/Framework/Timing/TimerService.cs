@@ -6,19 +6,29 @@ using Cysharp.Threading.Tasks;
 /// <summary>
 /// 定时器运行时实例句柄
 /// </summary>
-public sealed class TimerHandle : LifetimeHandle
+public class TimerHandle : LifetimeHandle
 {
-    /// <summary>取消所属定时器的回调</summary>
+    /// <summary>
+    /// 取消所属定时器的回调
+    /// </summary>
     private Action _cancel;
-    /// <summary>当前服务内唯一编号</summary>
+    /// <summary>
+    /// 当前服务内唯一编号
+    /// </summary>
     public int Id { get; }
-    /// <summary>是否尚未结束</summary>
+    /// <summary>
+    /// 是否尚未结束
+    /// </summary>
     public bool IsValid => !IsDisposed;
-    /// <summary>绑定定时器取消入口</summary>
+    /// <summary>
+    /// 绑定定时器取消入口
+    /// </summary>
     /// <param name="id">定时器编号</param>
     /// <param name="cancel">取消回调</param>
     internal TimerHandle(int id, Action cancel) { Id = id; _cancel = cancel; }
-    /// <summary>主动取消定时器 自然完成时回调无副作用</summary>
+    /// <summary>
+    /// 主动取消定时器 自然完成时回调无副作用
+    /// </summary>
     protected override void OnDispose()
     {
         var cancel = _cancel;
@@ -73,23 +83,37 @@ public interface ITimerService
 /// <summary>
 /// 定时器运行时实例
 /// </summary>
-internal sealed class TimerInstance : IDisposable
+internal class TimerInstance : IDisposable
 {
-    /// <summary>取消当前定时器的令牌源</summary>
+    /// <summary>
+    /// 取消当前定时器的令牌源
+    /// </summary>
     private readonly CancellationTokenSource _cancellation;
-    /// <summary>缓存令牌以便令牌源释放后查询状态</summary>
+    /// <summary>
+    /// 缓存令牌以便令牌源释放后查询状态
+    /// </summary>
     private readonly CancellationToken _token;
-    /// <summary>结束通知回调</summary>
+    /// <summary>
+    /// 结束通知回调
+    /// </summary>
     private readonly Action<TimerHandle> _onCompleted;
 
-    /// <summary>所属定时器句柄</summary>
+    /// <summary>
+    /// 所属定时器句柄
+    /// </summary>
     public TimerHandle Handle { get; }
-    /// <summary>当前定时器的取消令牌</summary>
+    /// <summary>
+    /// 当前定时器的取消令牌
+    /// </summary>
     public CancellationToken Token => _token;
-    /// <summary>是否已经收到取消请求</summary>
+    /// <summary>
+    /// 是否已经收到取消请求
+    /// </summary>
     public bool IsCancellationRequested => _token.IsCancellationRequested;
 
-    /// <summary>记录定时器的取消和完成行为</summary>
+    /// <summary>
+    /// 记录定时器的取消和完成行为
+    /// </summary>
     public TimerInstance(TimerHandle handle, CancellationTokenSource cancellation, Action<TimerHandle> onCompleted)
     {
         Handle = handle;
@@ -98,7 +122,9 @@ internal sealed class TimerInstance : IDisposable
         _onCompleted = onCompleted;
     }
 
-    /// <summary>请求停止当前定时器</summary>
+    /// <summary>
+    /// 请求停止当前定时器
+    /// </summary>
     public void Cancel()
     {
         if (_cancellation.IsCancellationRequested)
@@ -113,7 +139,9 @@ internal sealed class TimerInstance : IDisposable
         }
     }
 
-    /// <summary>释放定时器取消源</summary>
+    /// <summary>
+    /// 释放定时器取消源
+    /// </summary>
     public void Dispose() => _cancellation.Dispose();
     
     /// <summary>
@@ -128,19 +156,31 @@ internal sealed class TimerInstance : IDisposable
 [AutoRegister(typeof(ITimerService), typeof(IStartupService), AsSelf = false)]
 internal class TimerService : ISystem, IStartupService, ITimerService
 {
-    /// <summary>定时器异常记录器</summary>
+    /// <summary>
+    /// 定时器异常记录器
+    /// </summary>
     private readonly ILogger<TimerService> _logger;
-    /// <summary>仍在运行的定时器实例</summary>
+    /// <summary>
+    /// 仍在运行的定时器实例
+    /// </summary>
     private readonly Dictionary<TimerHandle, TimerInstance> _instances = new();
 
-    /// <summary>全局服务取消令牌</summary>
+    /// <summary>
+    /// 全局服务取消令牌
+    /// </summary>
     private CancellationToken _lifetimeToken = new(true);
-    /// <summary>下一个定时器编号</summary>
+    /// <summary>
+    /// 下一个定时器编号
+    /// </summary>
     private int _nextHandleId;
-    /// <summary>服务是否已经释放</summary>
+    /// <summary>
+    /// 服务是否已经释放
+    /// </summary>
     private bool _disposed;
 
-    /// <summary>接收定时器日志服务</summary>
+    /// <summary>
+    /// 接收定时器日志服务
+    /// </summary>
     public TimerService(ILogger<TimerService> logger)
     {
         _logger = logger;
@@ -148,14 +188,22 @@ internal class TimerService : ISystem, IStartupService, ITimerService
 
     #region 服务生命周期
 
-    /// <summary>服务启动顺序</summary>
+    /// <summary>
+    /// 服务启动顺序
+    /// </summary>
     public int Priority => FrameworkSettings.TimerStartupPriority;
-    /// <summary>启动进度说明</summary>
+    /// <summary>
+    /// 启动进度说明
+    /// </summary>
     public string Description => "定时器服务";
-    /// <summary>启动进度权重</summary>
+    /// <summary>
+    /// 启动进度权重
+    /// </summary>
     public float Weight => FrameworkSettings.TimerStartupWeight;
 
-    /// <summary>绑定全局服务生命周期</summary>
+    /// <summary>
+    /// 绑定全局服务生命周期
+    /// </summary>
     public UniTask StartAsync(StartupContext context)
     {
         if (_disposed) throw new ObjectDisposedException(nameof(TimerService));
@@ -163,7 +211,9 @@ internal class TimerService : ISystem, IStartupService, ITimerService
         return UniTask.CompletedTask;
     }
 
-    /// <summary>停止所有尚未结束的定时器</summary>
+    /// <summary>
+    /// 停止所有尚未结束的定时器
+    /// </summary>
     public void Dispose()
     {
         if (_disposed) return;
@@ -175,7 +225,9 @@ internal class TimerService : ISystem, IStartupService, ITimerService
 
     #endregion
 
-    /// <summary>创建一次性定时器并返回可释放句柄</summary>
+    /// <summary>
+    /// 创建一次性定时器并返回可释放句柄
+    /// </summary>
     public TimerHandle Schedule(TimeSpan delay, DelayType delayType, Action callback, CancellationToken cancellationToken = default, Action<TimerHandle> onCompleted = null)
     {
         if (_disposed) throw new ObjectDisposedException(nameof(TimerService));
@@ -192,7 +244,9 @@ internal class TimerService : ISystem, IStartupService, ITimerService
         return instance.Handle;
     }
 
-    /// <summary>创建循环定时器并返回可释放句柄</summary>
+    /// <summary>
+    /// 创建循环定时器并返回可释放句柄
+    /// </summary>
     public TimerHandle ScheduleRepeating(TimeSpan interval, DelayType delayType, Action callback, CancellationToken cancellationToken = default, Action<TimerHandle> onCompleted = null)
     {
         if (_disposed) throw new ObjectDisposedException(nameof(TimerService));
@@ -272,7 +326,9 @@ internal class TimerService : ISystem, IStartupService, ITimerService
         }
     }
 
-    /// <summary>请求取消指定定时器</summary>
+    /// <summary>
+    /// 请求取消指定定时器
+    /// </summary>
     public void Cancel(TimerHandle handle)
     {
         if (handle == null || !_instances.TryGetValue(handle, out var instance))

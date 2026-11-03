@@ -6,49 +6,83 @@ using UnityEngine;
 using VContainer;
 using Object = UnityEngine.Object;
 
-/// <summary>通过全局容器打开和关闭UI面板</summary>
+/// <summary>
+/// 通过全局容器打开和关闭UI面板
+/// </summary>
 public interface IUIService
 {
-    /// <summary>加载面板并从全局容器注入依赖 关闭面板或销毁对象时归还资源引用</summary>
+    /// <summary>
+    /// 加载面板并从全局容器注入依赖 关闭面板或销毁对象时归还资源引用
+    /// </summary>
     /// <param name="key">UI键值</param>
     /// <param name="args">打开参数</param>
     /// <param name="cancellationToken">打开期间的取消令牌</param>
     /// <returns>面板句柄</returns>
     UniTask<UIPanelHandle> OpenAsync<TArgs>(UIKey<TArgs> key, TArgs args, CancellationToken cancellationToken = default);
-    /// <summary>关闭指定面板</summary>
+    /// <summary>
+    /// 关闭指定面板
+    /// </summary>
     UniTask CloseAsync(UIPanelHandle handle);
-    /// <summary>请求销毁指定面板 资源在Unity完成销毁后自动归还</summary>
+    /// <summary>
+    /// 请求销毁指定面板 资源在Unity完成销毁后自动归还
+    /// </summary>
     void DisposeImmediately(UIPanelHandle handle);
 }
 
-/// <summary>持有全局UI根节点并管理已打开面板</summary>
+/// <summary>
+/// 持有全局UI根节点并管理已打开面板
+/// </summary>
 [AutoRegister(typeof(IUIService), typeof(IStartupService), AsSelf = false)]
 internal class UIService : ISystem, IStartupService, IUIService
 {
-    /// <summary>UI服务的资源加载入口</summary>
+    /// <summary>
+    /// UI服务的资源加载入口
+    /// </summary>
     private readonly IResourcesService _resources;
-    /// <summary>面板配置来源</summary>
+    /// <summary>
+    /// 面板配置来源
+    /// </summary>
     private readonly IFrameworkConfigTableService _configTableService;
-    /// <summary>异常记录器</summary>
+    /// <summary>
+    /// 异常记录器
+    /// </summary>
     private readonly ILogger<UIService> _logger;
-    /// <summary>注册当前单例服务的全局容器</summary>
+    /// <summary>
+    /// 注册当前单例服务的全局容器
+    /// </summary>
     private readonly IObjectResolver _rootResolver;
-    /// <summary>当前服务拥有的面板实例</summary>
+    /// <summary>
+    /// 当前服务拥有的面板实例
+    /// </summary>
     private readonly Dictionary<UIPanelHandle, PanelInstance> _instances = new();
-    /// <summary>服务销毁时取消尚未结束的打开流程</summary>
+    /// <summary>
+    /// 服务销毁时取消尚未结束的打开流程
+    /// </summary>
     private readonly CancellationTokenSource _shutdown = new();
-    /// <summary>全局UI层级节点</summary>
+    /// <summary>
+    /// 全局UI层级节点
+    /// </summary>
     private UIRoot _uiRoot;
-    /// <summary>启动协调器提供的全局生命周期</summary>
+    /// <summary>
+    /// 启动协调器提供的全局生命周期
+    /// </summary>
     private CancellationToken _lifetimeToken = new(true);
-    /// <summary>下一个实例编号</summary>
+    /// <summary>
+    /// 下一个实例编号
+    /// </summary>
     private int _nextHandleId;
-    /// <summary>服务是否已关闭</summary>
+    /// <summary>
+    /// 服务是否已关闭
+    /// </summary>
     private bool _disposed;
-    /// <summary>全局UI根预制体地址</summary>
+    /// <summary>
+    /// 全局UI根预制体地址
+    /// </summary>
     private const string RootPrefab = FrameworkSettings.UIRootLocation;
 
-    /// <summary>接收框架服务及所属全局容器</summary>
+    /// <summary>
+    /// 接收框架服务及所属全局容器
+    /// </summary>
     public UIService(IResourcesService resources, IFrameworkConfigTableService configTableService,
         ILogger<UIService> logger, IObjectResolver rootResolver)
     {
@@ -60,14 +94,22 @@ internal class UIService : ISystem, IStartupService, IUIService
 
     #region 服务生命周期
 
-    /// <summary>启动顺序</summary>
+    /// <summary>
+    /// 启动顺序
+    /// </summary>
     public int Priority => FrameworkSettings.UIStartupPriority;
-    /// <summary>启动进度说明</summary>
+    /// <summary>
+    /// 启动进度说明
+    /// </summary>
     public string Description => "UI服务";
-    /// <summary>启动进度权重</summary>
+    /// <summary>
+    /// 启动进度权重
+    /// </summary>
     public float Weight => FrameworkSettings.UIStartupWeight;
 
-    /// <summary>加载并保留全局UI根节点</summary>
+    /// <summary>
+    /// 加载并保留全局UI根节点
+    /// </summary>
     public async UniTask StartAsync(StartupContext context)
     {
         if (_disposed) throw new ObjectDisposedException(nameof(UIService));
@@ -97,7 +139,9 @@ internal class UIService : ISystem, IStartupService, IUIService
         context.ReportProgress?.Invoke(1f, "UI根节点初始化完成");
     }
 
-    /// <summary>取消所有打开流程并销毁当前服务拥有的UI对象</summary>
+    /// <summary>
+    /// 取消所有打开流程并销毁当前服务拥有的UI对象
+    /// </summary>
     public void Dispose()
     {
         if (_disposed) return;
@@ -112,7 +156,9 @@ internal class UIService : ISystem, IStartupService, IUIService
 
     #endregion
 
-    /// <summary>使用全局容器创建面板 并处理打开取消或外部销毁</summary>
+    /// <summary>
+    /// 使用全局容器创建面板 并处理打开取消或外部销毁
+    /// </summary>
     public async UniTask<UIPanelHandle> OpenAsync<TArgs>(UIKey<TArgs> key, TArgs args,
         CancellationToken cancellationToken = default)
     {
@@ -153,14 +199,18 @@ internal class UIService : ISystem, IStartupService, IUIService
         }
     }
 
-    /// <summary>关闭面板并返回已完成任务</summary>
+    /// <summary>
+    /// 关闭面板并返回已完成任务
+    /// </summary>
     public UniTask CloseAsync(UIPanelHandle handle)
     {
         DisposeImmediately(handle);
         return UniTask.CompletedTask;
     }
 
-    /// <summary>取消面板打开流程并请求Unity销毁对象</summary>
+    /// <summary>
+    /// 取消面板打开流程并请求Unity销毁对象
+    /// </summary>
     public void DisposeImmediately(UIPanelHandle handle)
     {
         if (!_instances.TryGetValue(handle, out var panel)) return;
@@ -169,22 +219,38 @@ internal class UIService : ISystem, IStartupService, IUIService
         finally { if (panel.GameObject != null) Object.Destroy(panel.GameObject); }
     }
 
-    /// <summary>跟踪单个面板的销毁并移除全局实例记录</summary>
-    private sealed class PanelInstance : LifetimeHandle
+    /// <summary>
+    /// 跟踪单个面板的销毁并移除全局实例记录
+    /// </summary>
+    private class PanelInstance : LifetimeHandle
     {
-        /// <summary>拥有该面板的UI服务</summary>
+        /// <summary>
+        /// 拥有该面板的UI服务
+        /// </summary>
         private UIService _owner;
-        /// <summary>取消面板尚未完成的打开任务</summary>
+        /// <summary>
+        /// 取消面板尚未完成的打开任务
+        /// </summary>
         private readonly CancellationTokenSource _destroyed = new();
-        /// <summary>面板配置编号</summary>
+        /// <summary>
+        /// 面板配置编号
+        /// </summary>
         public int Id { get; }
-        /// <summary>面板实例编号</summary>
+        /// <summary>
+        /// 面板实例编号
+        /// </summary>
         public UIPanelHandle Handle { get; }
-        /// <summary>Unity面板对象</summary>
+        /// <summary>
+        /// Unity面板对象
+        /// </summary>
         public GameObject GameObject { get; }
-        /// <summary>面板销毁取消令牌</summary>
+        /// <summary>
+        /// 面板销毁取消令牌
+        /// </summary>
         public CancellationToken DestroyedToken { get; }
-        /// <summary>记录实例所有者并缓存可在释放后读取的令牌</summary>
+        /// <summary>
+        /// 记录实例所有者并缓存可在释放后读取的令牌
+        /// </summary>
         public PanelInstance(UIService owner, UIPanelHandle handle, int id, GameObject gameObject)
         {
             _owner = owner;
@@ -193,7 +259,9 @@ internal class UIService : ISystem, IStartupService, IUIService
             GameObject = gameObject;
             DestroyedToken = _destroyed.Token;
         }
-        /// <summary>先移除记录再取消回调以防止清理重入</summary>
+        /// <summary>
+        /// 先移除记录再取消回调以防止清理重入
+        /// </summary>
         protected override void OnDispose()
         {
             _owner._instances.Remove(Handle);

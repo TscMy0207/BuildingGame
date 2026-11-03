@@ -64,7 +64,9 @@ internal class EventService : ISystem, IStartupService, IEventService
     /// 下一个事件订阅句柄编号
     /// </summary>
     private int _nextHandleId;
-    /// <summary>服务是否已经释放</summary>
+    /// <summary>
+    /// 服务是否已经释放
+    /// </summary>
     private bool _disposed;
 
     /// <summary>

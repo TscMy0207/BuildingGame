@@ -13,23 +13,39 @@ using Object = UnityEngine.Object;
 /// <summary>
 /// 通过实际YooAsset资源及Master Audio运行组件验证音频服务
 /// </summary>
-public sealed class MasterAudioServiceTests
+public class MasterAudioServiceTests
 {
-    /// <summary>每个测试独立创建和释放的框架容器</summary>
+    /// <summary>
+    /// 每个测试独立创建和释放的框架容器
+    /// </summary>
     private IObjectResolver _container;
-    /// <summary>加载实际音频预制体的资源服务</summary>
+    /// <summary>
+    /// 加载实际音频预制体的资源服务
+    /// </summary>
     private IResourcesService _resources;
-    /// <summary>驱动设置通知的真实事件服务</summary>
+    /// <summary>
+    /// 驱动设置通知的真实事件服务
+    /// </summary>
     private IEventService _events;
-    /// <summary>真实音频设置实例</summary>
+    /// <summary>
+    /// 真实音频设置实例
+    /// </summary>
     private IAudioSettings _settings;
-    /// <summary>被测试的音频服务</summary>
+    /// <summary>
+    /// 被测试的音频服务
+    /// </summary>
     private IAudioService _audio;
-    /// <summary>仅当场景缺少监听器时创建的测试对象</summary>
+    /// <summary>
+    /// 仅当场景缺少监听器时创建的测试对象
+    /// </summary>
     private GameObject _listenerObject;
-    /// <summary>仅用于本次测试的动态声音组定义</summary>
+    /// <summary>
+    /// 仅用于本次测试的动态声音组定义
+    /// </summary>
     private GameObject _dynamicGroup;
-    /// <summary>不写入项目资源的静音测试片段</summary>
+    /// <summary>
+    /// 不写入项目资源的静音测试片段
+    /// </summary>
     private AudioClip _clip;
 
     /// <summary>

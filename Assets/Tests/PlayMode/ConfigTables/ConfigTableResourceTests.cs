@@ -8,7 +8,7 @@ using VContainer;
 /// <summary>
 /// 验证实际依赖注册 YooAsset模拟资源包与Luban加载能够协同工作
 /// </summary>
-public sealed class ConfigTableResourceTests
+public class ConfigTableResourceTests
 {
     /// <summary>
     /// 在实际运行循环中初始化资源服务并读取项目配置

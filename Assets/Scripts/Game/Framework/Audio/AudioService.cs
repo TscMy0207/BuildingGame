@@ -51,26 +51,49 @@ internal class AudioService : ISystem, IAudioService, IStartupService
     /// </summary>
     private const float InitializationTimeout = 10f;
 
-    /// <summary>音频设置唯一来源</summary>
+    /// <summary>
+    /// 音频设置唯一来源
+    /// </summary>
     private readonly IAudioSettings _settings;
-    /// <summary>宿主预制体的资源引用所有者</summary>
+    /// <summary>
+    /// 宿主预制体的资源引用所有者
+    /// </summary>
     private readonly IResourcesService _resources;
-    /// <summary>设置变化通知来源</summary>
+    /// <summary>
+    /// 设置变化通知来源
+    /// </summary>
     private readonly IEventService _eventService;
-    /// <summary>本次启动创建的根对象 用于失败回滚和正常释放</summary>
+    /// <summary>
+    /// 本次启动创建的根对象 用于失败回滚和正常释放
+    /// </summary>
     private GameObject _instance;
-    /// <summary>当前宿主及其插件组件引用</summary>
+    /// <summary>
+    /// 当前宿主及其插件组件引用
+    /// </summary>
     private AudioServiceHost _host;
-    /// <summary>需要在释放时解绑的设置订阅</summary>
+    /// <summary>
+    /// 需要在释放时解绑的设置订阅
+    /// </summary>
     private EventHandle _eventHandle;
     /// <summary>
     /// 最近一次有效音乐请求 供重新开启音乐时恢复
     /// </summary>
     private string _requestedPlaylist;
-    /// <summary>是否持有一次尚未归还的预制体资源引用</summary>
+    /// <summary>
+    /// 是否持有一次尚未归还的预制体资源引用
+    /// </summary>
     private bool _prefabLoaded;
+    /// <summary>
+    /// 已发起启动流程 用于阻止服务重复启动
+    /// </summary>
     private bool _started;
+    /// <summary>
+    /// 服务释放后阻止新的播放和初始化操作
+    /// </summary>
     private bool _disposed;
+    /// <summary>
+    /// 记录上次音乐开关以判断是否需要恢复播放
+    /// </summary>
     private bool _wasMusicEnabled;
 
     /// <summary>

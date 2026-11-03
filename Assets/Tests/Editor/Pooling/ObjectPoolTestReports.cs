@@ -7,7 +7,7 @@ using UnityEngine;
 /// 在跨播放模式域重载后仍能保存对象池测试结果
 /// </summary>
 [InitializeOnLoad]
-internal sealed class ObjectPoolTestReports : ICallbacks
+internal class ObjectPoolTestReports : ICallbacks
 {
     /// <summary>
     /// 当前编辑器域中的测试API实例

@@ -14,27 +14,47 @@ using VContainer;
 using YooAsset;
 using Object = UnityEngine.Object;
 
-/// <summary>验证替代旧Scope后的注入及自动清理所有权</summary>
-public sealed class LifetimeServiceTests
+/// <summary>
+/// 验证替代旧Scope后的注入及自动清理所有权
+/// </summary>
+public class LifetimeServiceTests
 {
-    /// <summary>测试使用的逻辑预制体地址</summary>
+    /// <summary>
+    /// 测试使用的逻辑预制体地址
+    /// </summary>
     private const string Location = "Test/Lifetime.prefab";
-    /// <summary>测试全局依赖容器</summary>
+    /// <summary>
+    /// 测试全局依赖容器
+    /// </summary>
     private IObjectResolver _container;
-    /// <summary>全局事件服务</summary>
+    /// <summary>
+    /// 全局事件服务
+    /// </summary>
     private IEventService _events;
-    /// <summary>全局定时器服务</summary>
+    /// <summary>
+    /// 全局定时器服务
+    /// </summary>
     private ITimerService _timers;
-    /// <summary>计数加载器</summary>
+    /// <summary>
+    /// 计数加载器
+    /// </summary>
     private Loader _loader;
-    /// <summary>测试拥有的Unity对象</summary>
+    /// <summary>
+    /// 测试拥有的Unity对象
+    /// </summary>
     private readonly List<GameObject> _objects = new();
-    /// <summary>内存模板</summary>
+    /// <summary>
+    /// 内存模板
+    /// </summary>
     private GameObject _prefab;
-    /// <summary>事件测试键</summary>
+    /// <summary>
+    /// 事件测试键
+    /// </summary>
     private readonly EventKey<int> _key = new(901, "生命周期测试");
 
-    /// <summary>配置真实框架服务并注入内存资源</summary>
+    /// <summary>
+    /// 配置真实框架服务并注入内存资源
+    /// </summary>
     [SetUp]
     public void SetUp()
     {
@@ -56,7 +76,9 @@ public sealed class LifetimeServiceTests
         ((IStartupService)_timers).StartAsync(new StartupContext(CancellationToken.None, null)).GetAwaiter().GetResult();
     }
 
-    /// <summary>销毁测试对象并等待清理完成</summary>
+    /// <summary>
+    /// 销毁测试对象并等待清理完成
+    /// </summary>
     [UnityTearDown]
     public IEnumerator TearDown()
     {
@@ -68,10 +90,14 @@ public sealed class LifetimeServiceTests
         _objects.Clear();
     }
 
-    /// <summary>记录测试对象供失败时清理</summary>
+    /// <summary>
+    /// 记录测试对象供失败时清理
+    /// </summary>
     private GameObject Own(GameObject instance) { _objects.Add(instance); return instance; }
 
-    /// <summary>事件释放集合可复用且已结束订阅不再积累</summary>
+    /// <summary>
+    /// 事件释放集合可复用且已结束订阅不再积累
+    /// </summary>
     [Test]
     public void EventBagClearAndDisposeAreIdempotent()
     {
@@ -94,7 +120,9 @@ public sealed class LifetimeServiceTests
         Assert.That(_events.IsSubscribed(fourth), Is.False);
     }
 
-    /// <summary>令牌已取消时立即解绑且自然结束后不会重复释放</summary>
+    /// <summary>
+    /// 令牌已取消时立即解绑且自然结束后不会重复释放
+    /// </summary>
     [Test]
     public void AlreadyCanceledTokenDisposesExactlyOnce()
     {
@@ -108,7 +136,9 @@ public sealed class LifetimeServiceTests
         _events.Publish(_key, 1);
     }
 
-    /// <summary>释放集合中某个对象抛错不会阻止其他清理</summary>
+    /// <summary>
+    /// 释放集合中某个对象抛错不会阻止其他清理
+    /// </summary>
     [Test]
     public void BagDisposesRemainingItemsAfterFailure()
     {
@@ -121,7 +151,9 @@ public sealed class LifetimeServiceTests
         bag.Dispose();
     }
 
-    /// <summary>定时器自然完成会移出集合并只通知一次</summary>
+    /// <summary>
+    /// 定时器自然完成会移出集合并只通知一次
+    /// </summary>
     [UnityTest]
     public IEnumerator TimerCompletionRemovesBagEntry()
     {
@@ -139,7 +171,9 @@ public sealed class LifetimeServiceTests
         Assert.That(completed, Is.EqualTo(1));
     }
 
-    /// <summary>禁用对象不解绑 销毁后事件和定时器一起取消</summary>
+    /// <summary>
+    /// 禁用对象不解绑 销毁后事件和定时器一起取消
+    /// </summary>
     [UnityTest]
     public IEnumerator DestroyOwnerCancelsEventAndTimerButDisableDoesNot()
     {
@@ -162,7 +196,9 @@ public sealed class LifetimeServiceTests
         Assert.That(calls, Is.EqualTo(1));
     }
 
-    /// <summary>从未激活的对象销毁也会清理持有的订阅</summary>
+    /// <summary>
+    /// 从未激活的对象销毁也会清理持有的订阅
+    /// </summary>
     [UnityTest]
     public IEnumerator NeverActivatedOwnerStillReleases()
     {
@@ -175,7 +211,9 @@ public sealed class LifetimeServiceTests
         Assert.That(subscription.IsDisposed, Is.True);
     }
 
-    /// <summary>后台线程取消令牌会回到Unity主线程解绑</summary>
+    /// <summary>
+    /// 后台线程取消令牌会回到Unity主线程解绑
+    /// </summary>
     [UnityTest]
     public IEnumerator BackgroundCancellationReleasesOnMainThread()
     {
@@ -188,7 +226,9 @@ public sealed class LifetimeServiceTests
         Assert.That(counter.ThreadId, Is.EqualTo(Thread.CurrentThread.ManagedThreadId));
     }
 
-    /// <summary>同一预制体的两个实例各持有一次引用且注入早于启用</summary>
+    /// <summary>
+    /// 同一预制体的两个实例各持有一次引用且注入早于启用
+    /// </summary>
     [UnityTest]
     public IEnumerator ResourceInstancesReleaseTheirOwnReferences()
     {
@@ -212,7 +252,9 @@ public sealed class LifetimeServiceTests
         Assert.That(_loader.Releases, Is.EqualTo(2));
     }
 
-    /// <summary>实例从未激活时销毁仍然归还预制体引用</summary>
+    /// <summary>
+    /// 实例从未激活时销毁仍然归还预制体引用
+    /// </summary>
     [UnityTest]
     public IEnumerator InactiveResourceInstanceReleases()
     {
@@ -226,7 +268,9 @@ public sealed class LifetimeServiceTests
         Assert.That(_loader.Releases, Is.EqualTo(1));
     }
 
-    /// <summary>等待加载时取消会在加载返回后归还引用且不创建实例</summary>
+    /// <summary>
+    /// 等待加载时取消会在加载返回后归还引用且不创建实例
+    /// </summary>
     [UnityTest]
     public IEnumerator CancellationDuringLoadReturnsReference()
     {
@@ -240,7 +284,9 @@ public sealed class LifetimeServiceTests
         Assert.That(_loader.Releases, Is.EqualTo(1));
     }
 
-    /// <summary>注入缺少依赖时销毁半成品并只归还一次引用</summary>
+    /// <summary>
+    /// 注入缺少依赖时销毁半成品并只归还一次引用
+    /// </summary>
     [UnityTest]
     public IEnumerator FailedInjectionDoesNotLeakClone()
     {
@@ -255,7 +301,9 @@ public sealed class LifetimeServiceTests
             Assert.That(view.gameObject, Is.EqualTo(_prefab));
     }
 
-    /// <summary>子容器请求UI时视图仍获得全局依赖 关闭及外部销毁均只释放一次</summary>
+    /// <summary>
+    /// 子容器请求UI时视图仍获得全局依赖 关闭及外部销毁均只释放一次
+    /// </summary>
     [UnityTest]
     public IEnumerator UiUsesRootDependenciesAndAutomaticRelease()
     {
@@ -281,7 +329,9 @@ public sealed class LifetimeServiceTests
         Assert.That(_loader.Releases, Is.EqualTo(2));
     }
 
-    /// <summary>打开期间对象被销毁会取消面板任务并移除实例记录</summary>
+    /// <summary>
+    /// 打开期间对象被销毁会取消面板任务并移除实例记录
+    /// </summary>
     [UnityTest]
     public IEnumerator UiDestroyedDuringOpeningCancelsAndReleases()
     {
@@ -296,7 +346,9 @@ public sealed class LifetimeServiceTests
         Assert.That(_loader.Releases, Is.EqualTo(1));
     }
 
-    /// <summary>构建内存UI根节点 避免依赖产品尚未配置的UIRoot地址</summary>
+    /// <summary>
+    /// 构建内存UI根节点 避免依赖产品尚未配置的UIRoot地址
+    /// </summary>
     private IUIService PrepareUI()
     {
         var ui = _container.Resolve<IUIService>();
@@ -310,28 +362,44 @@ public sealed class LifetimeServiceTests
         return ui;
     }
 
-    /// <summary>等待任务并传播实际异常</summary>
+    /// <summary>
+    /// 等待任务并传播实际异常
+    /// </summary>
     private static IEnumerator Await(Task task)
     {
         while (!task.IsCompleted) yield return null;
         task.GetAwaiter().GetResult();
     }
 
-    /// <summary>用于区分全局和子容器的依赖</summary>
-    public sealed class Dependency { }
+    /// <summary>
+    /// 用于区分全局和子容器的依赖
+    /// </summary>
+    public class Dependency { }
 
-    /// <summary>跟踪普通可释放对象及释放线程</summary>
-    private sealed class Counter : IDisposable
+    /// <summary>
+    /// 跟踪普通可释放对象及释放线程
+    /// </summary>
+    private class Counter : IDisposable
     {
-        /// <summary>是否在释放时抛出模拟异常</summary>
+        /// <summary>
+        /// 是否在释放时抛出模拟异常
+        /// </summary>
         private readonly bool _throws;
-        /// <summary>释放调用次数</summary>
+        /// <summary>
+        /// 释放调用次数
+        /// </summary>
         public int Count { get; private set; }
-        /// <summary>最后一次清理线程</summary>
+        /// <summary>
+        /// 最后一次清理线程
+        /// </summary>
         public int ThreadId { get; private set; }
-        /// <summary>设置模拟清理行为</summary>
+        /// <summary>
+        /// 设置模拟清理行为
+        /// </summary>
         public Counter(bool throws = false) => _throws = throws;
-        /// <summary>记录清理并按需抛出异常</summary>
+        /// <summary>
+        /// 记录清理并按需抛出异常
+        /// </summary>
         public void Dispose()
         {
             Count++;
@@ -340,12 +408,18 @@ public sealed class LifetimeServiceTests
         }
     }
 
-    /// <summary>固定面板配置以验证真实UI服务</summary>
-    private sealed class Config : IFrameworkConfigTableService
+    /// <summary>
+    /// 固定面板配置以验证真实UI服务
+    /// </summary>
+    private class Config : IFrameworkConfigTableService
     {
-        /// <summary>测试只查询转换后的面板配置</summary>
+        /// <summary>
+        /// 测试只查询转换后的面板配置
+        /// </summary>
         public FrameworkTables FrameworkTables => throw new NotSupportedException();
-        /// <summary>返回内存预制体的挂载配置</summary>
+        /// <summary>
+        /// 返回内存预制体的挂载配置
+        /// </summary>
         public bool TryGetPanelConfig(int id, out UIPanelConfig config)
         {
             config = new UIPanelConfig(id, Location, UIPanelLayer.Page);
@@ -353,31 +427,51 @@ public sealed class LifetimeServiceTests
         }
     }
 
-    /// <summary>保留真实加载配对语义并统计独立引用</summary>
-    private sealed class Loader : IResourcesService
+    /// <summary>
+    /// 保留真实加载配对语义并统计独立引用
+    /// </summary>
+    private class Loader : IResourcesService
     {
-        /// <summary>内存资源模板</summary>
+        /// <summary>
+        /// 内存资源模板
+        /// </summary>
         private readonly GameObject _prefab;
-        /// <summary>可控加载完成信号</summary>
+        /// <summary>
+        /// 可控加载完成信号
+        /// </summary>
         private UniTaskCompletionSource<GameObject> _pending;
-        /// <summary>是否挂起加载</summary>
+        /// <summary>
+        /// 是否挂起加载
+        /// </summary>
         public bool Delay { get; set; }
-        /// <summary>取得引用次数</summary>
+        /// <summary>
+        /// 取得引用次数
+        /// </summary>
         public int Loads { get; private set; }
-        /// <summary>归还引用次数</summary>
+        /// <summary>
+        /// 归还引用次数
+        /// </summary>
         public int Releases { get; private set; }
-        /// <summary>使用指定模板</summary>
+        /// <summary>
+        /// 使用指定模板
+        /// </summary>
         public Loader(GameObject prefab) => _prefab = prefab;
-        /// <summary>完成当前挂起加载</summary>
+        /// <summary>
+        /// 完成当前挂起加载
+        /// </summary>
         public void Complete() => _pending?.TrySetResult(_prefab);
-        /// <summary>模拟加载成功并取得一次引用</summary>
+        /// <summary>
+        /// 模拟加载成功并取得一次引用
+        /// </summary>
         public async UniTask<T> LoadAssetAsync<T>(string location) where T : Object
         {
             Loads++;
             var result = Delay ? await (_pending = new UniTaskCompletionSource<GameObject>()).Task : _prefab;
             return result as T;
         }
-        /// <summary>记录一次归还并检查资源类型</summary>
+        /// <summary>
+        /// 记录一次归还并检查资源类型
+        /// </summary>
         public void ReleaseAsset(string location, Type assetType)
         {
             Assert.That(location, Is.EqualTo(Location));
@@ -385,11 +479,15 @@ public sealed class LifetimeServiceTests
             Releases++;
             Assert.That(Releases, Is.LessThanOrEqualTo(Loads));
         }
-        /// <summary>测试不加载场景</summary>
+        /// <summary>
+        /// 测试不加载场景
+        /// </summary>
         public SceneHandle LoadSceneAsync(string location, LoadSceneMode sceneMode = LoadSceneMode.Single,
             LocalPhysicsMode physicsMode = LocalPhysicsMode.None, bool allowSceneActivation = true, uint priority = 0) =>
             throw new NotSupportedException();
-        /// <summary>测试不卸载场景</summary>
+        /// <summary>
+        /// 测试不卸载场景
+        /// </summary>
         public UniTask UnloadSceneAsync(SceneHandle handle, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
     }

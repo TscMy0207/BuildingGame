@@ -11,7 +11,7 @@ using Debug = UnityEngine.Debug;
 /// <summary>
 /// 提供Luban导表入口 并在构建前阻止未重新导出的配置进入构建
 /// </summary>
-public sealed class ConfigTableEditorCommands : IPreprocessBuildWithReport
+public class ConfigTableEditorCommands : IPreprocessBuildWithReport
 {
     /// <summary>
     /// 防止编辑器同时启动多个导表进程

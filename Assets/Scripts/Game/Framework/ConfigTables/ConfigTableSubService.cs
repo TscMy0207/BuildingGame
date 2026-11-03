@@ -35,7 +35,13 @@ public interface IConfigTableSubService
 /// <typeparam name="TTables">Luban生成的配置集合类型</typeparam>
 public abstract class ConfigTableSubServiceBase<TTables> : IConfigTableSubService where TTables : class
 {
+    /// <summary>
+    /// 加载配置清单与二进制文件的资源入口
+    /// </summary>
     private readonly IResourcesAssetLoader _resources;
+    /// <summary>
+    /// 记录表加载结果和验证失败原因
+    /// </summary>
     private readonly ILogger<TTables> _logger;
     /// <summary>
     /// 防止同一个子服务并发加载
@@ -210,7 +216,7 @@ public abstract class ConfigTableSubServiceBase<TTables> : IConfigTableSubServic
 /// 导出脚本生成的配置集合清单
 /// </summary>
 [Serializable]
-internal sealed class ConfigTableManifest
+internal class ConfigTableManifest
 {
     /// <summary>
     /// 清单格式版本
@@ -230,7 +236,7 @@ internal sealed class ConfigTableManifest
 /// 清单中的单个二进制文件及其内容校验值
 /// </summary>
 [Serializable]
-internal sealed class ConfigTableManifestFile
+internal class ConfigTableManifestFile
 {
     /// <summary>
     /// 不含扩展名的Luban文件名

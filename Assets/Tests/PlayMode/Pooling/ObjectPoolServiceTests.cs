@@ -13,19 +13,31 @@ using Object = UnityEngine.Object;
 /// <summary>
 /// 使用真实Unity对象池和VContainer验证复用及生命周期 通过可计数加载器验证资源所有权
 /// </summary>
-public sealed class ObjectPoolServiceTests
+public class ObjectPoolServiceTests
 {
-    /// <summary>测试预制体资源地址</summary>
+    /// <summary>
+    /// 测试预制体资源地址
+    /// </summary>
     private const string Location = "Test/PoolProbe.prefab";
-    /// <summary>当前测试的根容器</summary>
+    /// <summary>
+    /// 当前测试的根容器
+    /// </summary>
     private IObjectResolver _container;
-    /// <summary>待测的实际对象池服务</summary>
+    /// <summary>
+    /// 待测的实际对象池服务
+    /// </summary>
     private IObjectPoolService _pool;
-    /// <summary>用于记录加载和归还次数的资源加载器</summary>
+    /// <summary>
+    /// 用于记录加载和归还次数的资源加载器
+    /// </summary>
     private CountingLoader _loader;
-    /// <summary>用于创建测试预制体的停用父节点</summary>
+    /// <summary>
+    /// 用于创建测试预制体的停用父节点
+    /// </summary>
     private GameObject _fixture;
-    /// <summary>在内存创建的预制体模板</summary>
+    /// <summary>
+    /// 在内存创建的预制体模板
+    /// </summary>
     private GameObject _prefab;
 
     /// <summary>
@@ -238,17 +250,27 @@ public sealed class ObjectPoolServiceTests
     /// <summary>
     /// 可控制完成时机且记录引用计数的测试加载器
     /// </summary>
-    private sealed class CountingLoader : IResourcesAssetLoader
+    private class CountingLoader : IResourcesAssetLoader
     {
-        /// <summary>模拟预制体资源</summary>
+        /// <summary>
+        /// 模拟预制体资源
+        /// </summary>
         private readonly GameObject _prefab;
-        /// <summary>所有延迟中的加载请求</summary>
+        /// <summary>
+        /// 所有延迟中的加载请求
+        /// </summary>
         private readonly List<UniTaskCompletionSource<GameObject>> _pending = new();
-        /// <summary>是否延迟下一次加载</summary>
+        /// <summary>
+        /// 是否延迟下一次加载
+        /// </summary>
         public bool Delay;
-        /// <summary>已获取资源引用数</summary>
+        /// <summary>
+        /// 已获取资源引用数
+        /// </summary>
         public int Loads;
-        /// <summary>已归还资源引用数</summary>
+        /// <summary>
+        /// 已归还资源引用数
+        /// </summary>
         public int Releases;
 
         /// <summary>

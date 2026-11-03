@@ -4,11 +4,23 @@ using UnityEngine;
 /// <summary>
 /// UI全局根节点 负责暴露各个UI层级的挂载点
 /// </summary>
-internal sealed class UIRoot : MonoBehaviour
+internal class UIRoot : MonoBehaviour
 {
+    /// <summary>
+    /// 承载页面层面板实例的预制体挂载点
+    /// </summary>
     [SerializeField] private Transform m_pageRoot;
+    /// <summary>
+    /// 承载弹窗层面板实例的预制体挂载点
+    /// </summary>
     [SerializeField] private Transform m_popupRoot;
+    /// <summary>
+    /// 承载覆盖层面板实例的预制体挂载点
+    /// </summary>
     [SerializeField] private Transform m_overlayRoot;
+    /// <summary>
+    /// 承载提示层面板实例的预制体挂载点
+    /// </summary>
     [SerializeField] private Transform m_toastRoot;
 
     /// <summary>

@@ -5,7 +5,7 @@ using UnityEngine;
 /// <summary>
 /// 持有Master Audio及其音乐控制器的跨场景宿主
 /// </summary>
-public sealed class AudioServiceHost : MonoBehaviour
+public class AudioServiceHost : MonoBehaviour
 {
     /// <summary>
     /// 子节点上的Master Audio组件 其直接子节点由插件专用于声音组

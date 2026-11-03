@@ -14,10 +14,19 @@ using Object = UnityEngine.Object;
 /// <summary>
 /// 验证配置实例发布 取消处理 数据完整性与资源配对释放
 /// </summary>
-public sealed class ConfigTableServiceTests
+public class ConfigTableServiceTests
 {
+    /// <summary>
+    /// 本用例持有并在结束时释放的内存资源加载器
+    /// </summary>
     private FakeResources _resources;
+    /// <summary>
+    /// 用于验证配置加载与清理的真实子服务
+    /// </summary>
     private IConfigTableSubService _loader;
+    /// <summary>
+    /// 本用例验证的框架配置访问契约
+    /// </summary>
     private IFrameworkConfigTableService _config;
 
     /// <summary>
@@ -170,9 +179,15 @@ public sealed class ConfigTableServiceTests
     /// <summary>
     /// 提供可统计的资源加载替身
     /// </summary>
-    private sealed class FakeResources : IResourcesAssetLoader, IDisposable
+    private class FakeResources : IResourcesAssetLoader, IDisposable
     {
+        /// <summary>
+        /// 按资源地址索引的内存配置文件
+        /// </summary>
         private readonly Dictionary<string, TextAsset> _assets = new();
+        /// <summary>
+        /// 本用例创建的TextAsset集合 用于统一销毁
+        /// </summary>
         private readonly List<TextAsset> _owned = new();
         /// <summary>
         /// 已执行的加载次数
@@ -239,7 +254,7 @@ public sealed class ConfigTableServiceTests
     /// <summary>
     /// 避免故意触发的异常写入Unity错误控制台
     /// </summary>
-    private sealed class SilentLogger : ILogger<FrameworkTables>
+    private class SilentLogger : ILogger<FrameworkTables>
     {
         /// <summary>
         /// 接受测试日志

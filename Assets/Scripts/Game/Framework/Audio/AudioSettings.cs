@@ -6,7 +6,7 @@ using Newtonsoft.Json.Linq;
 /// </summary>
 [Serializable]
 [UnityEngine.Scripting.Preserve]
-internal sealed class AudioSettingsSaveData
+internal class AudioSettingsSaveData
 {
     /// <summary>
     /// 音乐开关
@@ -157,11 +157,15 @@ internal class AudioSettingsSaveDataHandler : ISystem, ISaveDataHandler, ILegacy
         Apply(file.Load<AudioSettingsSaveData>(Key));
     }
 
-    /// <summary>迁移旧JSON中的音频设置</summary>
+    /// <summary>
+    /// 迁移旧JSON中的音频设置
+    /// </summary>
     /// <param name="payload">旧音频设置数据</param>
     public void LoadLegacy(JObject payload) => Apply(payload.ToObject<AudioSettingsSaveData>());
 
-    /// <summary>检查音频数据后更新共享设置并通知播放服务</summary>
+    /// <summary>
+    /// 检查音频数据后更新共享设置并通知播放服务
+    /// </summary>
     /// <param name="saved">待应用的音频设置</param>
     private void Apply(AudioSettingsSaveData saved)
     {

@@ -10,9 +10,14 @@
 /// </summary>
 public enum FrameworkEventRegistration
 {
+    /// <summary>
+    /// 未分配的事件标识 不用于发布订阅
+    /// </summary>
     None = 0,
 
-    /// <summary>音频设置发生改变</summary>
+    /// <summary>
+    /// 音频设置发生改变
+    /// </summary>
     AudioSettingsChanged = 100,
 }
 
@@ -21,7 +26,9 @@ public enum FrameworkEventRegistration
 /// </summary>
 public static class FrameworkEventKeys
 {
-    /// <summary>音频设置发生改变</summary>
+    /// <summary>
+    /// 音频设置发生改变
+    /// </summary>
     public static readonly EventKey<AudioSettingsChangedEvent> AudioSettingsChanged = new((int)FrameworkEventRegistration.AudioSettingsChanged, nameof(FrameworkEventRegistration.AudioSettingsChanged));
 }
 

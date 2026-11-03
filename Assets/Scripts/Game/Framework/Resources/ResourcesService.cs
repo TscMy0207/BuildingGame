@@ -12,9 +12,9 @@ using YooAsset;
 public interface IResourcesService : IResourcesAssetLoader
 {
     /// <summary>
-    /// 启动指定YooAsset场景的异步加载。
+    /// 启动指定YooAsset场景的异步加载
     /// 调用方通过返回句柄读取进度，并在allowSceneActivation为false时决定激活时机；
-    /// 不再需要场景时必须调用UnloadSceneAsync配对卸载。
+    /// 不再需要场景时必须调用UnloadSceneAsync配对卸载
     /// </summary>
     /// <param name="location">包名/包内场景路径</param>
     /// <param name="sceneMode">场景加载模式</param>
@@ -51,8 +51,17 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
     /// <returns>包内采集地址</returns>
     private static string GetAssetLocation(string location) => location.Substring(location.IndexOf('/') + 1);
 
+    /// <summary>
+    /// 负责本地资源包初始化与清单加载的依赖
+    /// </summary>
     private readonly IResourcesPackageManager m_packageManager;
+    /// <summary>
+    /// 记录资源加载与释放异常
+    /// </summary>
     private readonly ILogger<ResourcesService> m_logger;
+    /// <summary>
+    /// 资源服务生命周期结束时中断尚未完成的加载
+    /// </summary>
     private CancellationToken m_lifetimeToken;
 
     /// <summary>
@@ -65,30 +74,51 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
     /// </summary>
     private readonly struct ResourceKey : IEquatable<ResourceKey>
     {
+        /// <summary>
+        /// 包含包名前缀的完整资源地址
+        /// </summary>
         public readonly string Location;
+        /// <summary>
+        /// 与地址共同区分缓存项的资源类型
+        /// </summary>
         public readonly Type AssetType;
 
+        /// <summary>
+        /// 将资源地址和请求类型组合为缓存键
+        /// </summary>
         public ResourceKey(string location, Type assetType)
         {
             Location = location;
             AssetType = assetType;
         }
 
+        /// <summary>
+        /// 按序号比较地址并同时比较资源类型以确定缓存键是否相同
+        /// </summary>
         public bool Equals(ResourceKey other) =>
             StringComparer.Ordinal.Equals(Location, other.Location) && AssetType == other.AssetType;
 
+        /// <summary>
+        /// 按序号比较地址并同时比较资源类型以确定缓存键是否相同
+        /// </summary>
         public override bool Equals(object obj) => obj is ResourceKey other && Equals(other);
 
+        /// <summary>
+        /// 由地址和资源类型生成与相等规则一致的哈希值
+        /// </summary>
         public override int GetHashCode() =>
             (StringComparer.Ordinal.GetHashCode(Location) * 397) ^ AssetType.GetHashCode();
 
+        /// <summary>
+        /// 格式化资源地址与类型用于加载和释放诊断
+        /// </summary>
         public override string ToString() => $"{Location}<{AssetType.Name}>";
     }
 
     /// <summary>
     /// 先登记后启动的共享资源加载请求
     /// </summary>
-    private sealed class PendingLoad
+    private class PendingLoad
     {
         /// <summary>
         /// 支持多个调用方等待的加载结果
@@ -105,6 +135,9 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
     /// </summary>
     private readonly Dictionary<ResourceKey, (AssetHandle handle, int refCount)> m_cachedAssets = new();
 
+    /// <summary>
+    /// 接收资源包初始化入口和资源日志依赖
+    /// </summary>
     public ResourcesService(IResourcesPackageManager packageManager, ILogger<ResourcesService> logger)
     {
         m_packageManager = packageManager;
@@ -113,10 +146,22 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
 
     #region 服务生命周期
 
+    /// <summary>
+    /// 确保资源包在配置表和资源使用者之前就绪的启动顺序
+    /// </summary>
     public int Priority => FrameworkSettings.ResourcesStartupPriority;
+    /// <summary>
+    /// 启动进度中显示的资源服务名称
+    /// </summary>
     public string Description => "资源服务";
+    /// <summary>
+    /// 资源初始化占总体启动进度的权重
+    /// </summary>
     public float Weight => FrameworkSettings.ResourcesStartupWeight;
 
+    /// <summary>
+    /// 保存生命周期令牌并初始化YooAsset和全部本地资源包
+    /// </summary>
     public async UniTask StartAsync(StartupContext context)
     {
         m_lifetimeToken = context.LifetimeToken;
@@ -126,6 +171,9 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
         context.LifetimeToken.ThrowIfCancellationRequested();
     }
 
+    /// <summary>
+    /// 归还缓存资源句柄并取消尚未完成的共享加载请求
+    /// </summary>
     public void Dispose()
     {
         foreach (var pair in m_cachedAssets)
@@ -259,6 +307,9 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
         throw new KeyNotFoundException($"未找到资源路径'{location}'对应的资源包'{packageName}'");
     }
 
+    /// <summary>
+    /// 减少指定地址和类型的引用计数 最后一个引用归还底层句柄
+    /// </summary>
     public void ReleaseAsset(string location, Type assetType)
     {
         if (assetType == null)
@@ -287,8 +338,8 @@ internal class ResourcesService : ISystem, IStartupService, IResourcesService
     }
 
     /// <summary>
-    /// 通过对应资源包启动场景加载。
-    /// 返回的句柄由调用方用于读取进度、选择激活时机和后续卸载。
+    /// 通过对应资源包启动场景加载
+    /// 返回的句柄由调用方用于读取进度、选择激活时机和后续卸载
     /// </summary>
     public SceneHandle LoadSceneAsync(
         string location,

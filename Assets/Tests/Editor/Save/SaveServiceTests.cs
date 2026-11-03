@@ -8,19 +8,31 @@ using NUnit.Framework;
 using UnityEngine;
 using VContainer;
 
-/// <summary>使用真实Easy Save文件验证存档 备份及迁移 不访问玩家存档目录</summary>
-public sealed class SaveServiceTests
+/// <summary>
+/// 使用真实Easy Save文件验证存档 备份及迁移 不访问玩家存档目录
+/// </summary>
+public class SaveServiceTests
 {
-    /// <summary>每个用例的独立临时目录</summary>
+    /// <summary>
+    /// 每个用例的独立临时目录
+    /// </summary>
     private string _directory;
-    /// <summary>框架容器提供真实音频设置和事件服务</summary>
+    /// <summary>
+    /// 框架容器提供真实音频设置和事件服务
+    /// </summary>
     private IObjectResolver _container;
-    /// <summary>测试创建的服务 结束后统一释放</summary>
+    /// <summary>
+    /// 测试创建的服务 结束后统一释放
+    /// </summary>
     private readonly List<IStartupService> _services = new();
-    /// <summary>默认槽位的实际ES3路径</summary>
+    /// <summary>
+    /// 默认槽位的实际ES3路径
+    /// </summary>
     private string SavePath => Path.Combine(_directory, "slot_000.es3");
 
-    /// <summary>创建独立目录并启动真实事件服务</summary>
+    /// <summary>
+    /// 创建独立目录并启动真实事件服务
+    /// </summary>
     [SetUp]
     public void SetUp()
     {
@@ -33,7 +45,9 @@ public sealed class SaveServiceTests
             new StartupContext(CancellationToken.None, null)).GetAwaiter().GetResult();
     }
 
-    /// <summary>释放服务后仅删除本用例已确认位于测试根目录内的文件</summary>
+    /// <summary>
+    /// 释放服务后仅删除本用例已确认位于测试根目录内的文件
+    /// </summary>
     [TearDown]
     public void TearDown()
     {
@@ -45,7 +59,9 @@ public sealed class SaveServiceTests
             Directory.Delete(_directory, true);
     }
 
-    /// <summary>验证容器默认注册仍可解析统一存档入口</summary>
+    /// <summary>
+    /// 验证容器默认注册仍可解析统一存档入口
+    /// </summary>
     [Test]
     public void DefaultCompositionResolvesSaveService()
     {
@@ -54,7 +70,9 @@ public sealed class SaveServiceTests
         Assert.That(typeof(GameLifetimeScope).Assembly, Is.SameAs(typeof(ISaveService).Assembly));
     }
 
-    /// <summary>合并程序集后仍能加载旧Framework类型头 正式文件与备份均可恢复</summary>
+    /// <summary>
+    /// 合并程序集后仍能加载旧Framework类型头 正式文件与备份均可恢复
+    /// </summary>
     /// <param name="fromBackup">是否仅保留旧程序集的备份</param>
     [TestCase(false)]
     [TestCase(true)]
@@ -84,7 +102,9 @@ public sealed class SaveServiceTests
         StringAssert.Contains("AudioSettingsSaveData,Framework", File.ReadAllText(SavePath + ".bac"));
     }
 
-    /// <summary>真实音频数据直接经ES3序列化后由新服务重新加载并广播变化</summary>
+    /// <summary>
+    /// 真实音频数据直接经ES3序列化后由新服务重新加载并广播变化
+    /// </summary>
     [Test]
     public void AudioSettingsRoundTripThroughEasySave()
     {
@@ -110,7 +130,9 @@ public sealed class SaveServiceTests
         Assert.That(notifications, Is.GreaterThan(0));
     }
 
-    /// <summary>序列化失败不覆盖正式文件及已有备份</summary>
+    /// <summary>
+    /// 序列化失败不覆盖正式文件及已有备份
+    /// </summary>
     [Test]
     public void SnapshotFailurePreservesPrimaryAndBackup()
     {
@@ -129,7 +151,9 @@ public sealed class SaveServiceTests
         Assert.That(File.ReadAllBytes(SavePath + ".bac"), Is.EqualTo(backup));
     }
 
-    /// <summary>正式文件损坏或缺失时恢复上一轮有效备份并允许继续保存</summary>
+    /// <summary>
+    /// 正式文件损坏或缺失时恢复上一轮有效备份并允许继续保存
+    /// </summary>
     /// <param name="deletePrimary">是否模拟正式文件缺失</param>
     [TestCase(false)]
     [TestCase(true)]
@@ -152,7 +176,9 @@ public sealed class SaveServiceTests
         Assert.That(Save(restored), Is.True);
     }
 
-    /// <summary>不可恢复的数据只恢复运行时默认值 保留原文件且拒绝后续覆盖</summary>
+    /// <summary>
+    /// 不可恢复的数据只恢复运行时默认值 保留原文件且拒绝后续覆盖
+    /// </summary>
     [Test]
     public void CorruptSaveWithoutBackupIsNotOverwritten()
     {
@@ -165,7 +191,9 @@ public sealed class SaveServiceTests
         Assert.That(File.ReadAllText(SavePath), Is.EqualTo("损坏的存档"));
     }
 
-    /// <summary>程序版本落后时不回退到旧备份并覆盖更新版本的数据</summary>
+    /// <summary>
+    /// 程序版本落后时不回退到旧备份并覆盖更新版本的数据
+    /// </summary>
     /// <param name="newerSection">是否仅提高数据段版本</param>
     [TestCase(false)]
     [TestCase(true)]
@@ -186,7 +214,9 @@ public sealed class SaveServiceTests
         Assert.That(File.ReadAllBytes(SavePath), Is.EqualTo(original));
     }
 
-    /// <summary>旧JSON音频设置可迁移且保留原文件 后续优先读取ES3</summary>
+    /// <summary>
+    /// 旧JSON音频设置可迁移且保留原文件 后续优先读取ES3
+    /// </summary>
     [Test]
     public void MigratesLegacyJsonAndPrefersEasySaveAfterwards()
     {
@@ -208,7 +238,9 @@ public sealed class SaveServiceTests
         Assert.That(File.ReadAllText(legacyPath), Is.EqualTo(LegacyJson));
     }
 
-    /// <summary>部分数据段应用失败后恢复所有默认值且不保存部分加载状态</summary>
+    /// <summary>
+    /// 部分数据段应用失败后恢复所有默认值且不保存部分加载状态
+    /// </summary>
     [Test]
     public void InvalidAudioDataRollsBackOtherSections()
     {
@@ -231,7 +263,9 @@ public sealed class SaveServiceTests
         Assert.That(File.ReadAllBytes(SavePath), Is.EqualTo(original));
     }
 
-    /// <summary>暂时未注册的已保存数据段在其他数据保存时继续保留</summary>
+    /// <summary>
+    /// 暂时未注册的已保存数据段在其他数据保存时继续保留
+    /// </summary>
     [Test]
     public void PreservesUnregisteredSections()
     {
@@ -251,7 +285,9 @@ public sealed class SaveServiceTests
         Assert.That(second.Value, Is.EqualTo(7));
     }
 
-    /// <summary>启动前 释放后和取消时不会写入磁盘</summary>
+    /// <summary>
+    /// 启动前 释放后和取消时不会写入磁盘
+    /// </summary>
     [Test]
     public void LifecycleAndCancellationDoNotWriteFiles()
     {
@@ -266,7 +302,9 @@ public sealed class SaveServiceTests
         Assert.That(Save(service), Is.False);
     }
 
-    /// <summary>通过内部目录构造器隔离玩家文件 同时使用真实服务实现</summary>
+    /// <summary>
+    /// 通过内部目录构造器隔离玩家文件 同时使用真实服务实现
+    /// </summary>
     /// <param name="handlers">本次测试的数据处理器</param>
     /// <returns>真实存档服务</returns>
     private ISaveService CreateService(params ISaveDataHandler[] handlers)
@@ -279,51 +317,77 @@ public sealed class SaveServiceTests
         return instance;
     }
 
-    /// <summary>启动真实服务并同步检查已完成任务的异常</summary>
+    /// <summary>
+    /// 启动真实服务并同步检查已完成任务的异常
+    /// </summary>
     /// <param name="service">待启动服务</param>
     private static void Start(ISaveService service) => ((IStartupService)service).StartAsync(
         new StartupContext(CancellationToken.None, null)).GetAwaiter().GetResult();
 
-    /// <summary>执行真实文件保存</summary>
+    /// <summary>
+    /// 执行真实文件保存
+    /// </summary>
     /// <param name="service">待保存服务</param>
     /// <returns>保存结果</returns>
     private static bool Save(ISaveService service) => service.SaveAsync().GetAwaiter().GetResult();
 
-    /// <summary>生成测试读取及损坏模拟使用的文件设置</summary>
+    /// <summary>
+    /// 生成测试读取及损坏模拟使用的文件设置
+    /// </summary>
     /// <returns>固定使用本地测试文件的设置</returns>
     private ES3Settings Settings() => new(false) { path = SavePath, location = ES3.Location.File };
 
-    /// <summary>用简单值覆盖快照失败及恢复路径 序列化仍由真实ES3执行</summary>
-    private sealed class ValueHandler : ISaveDataHandler
+    /// <summary>
+    /// 用简单值覆盖快照失败及恢复路径 序列化仍由真实ES3执行
+    /// </summary>
+    private class ValueHandler : ISaveDataHandler
     {
-        /// <summary>用于模拟存档变化的运行时数据</summary>
+        /// <summary>
+        /// 用于模拟存档变化的运行时数据
+        /// </summary>
         public int Value;
-        /// <summary>是否在采集阶段模拟异常</summary>
+        /// <summary>
+        /// 是否在采集阶段模拟异常
+        /// </summary>
         public bool FailSave;
-        /// <summary>可配置的数据段标识</summary>
+        /// <summary>
+        /// 可配置的数据段标识
+        /// </summary>
         public string Key { get; set; } = "testValue";
-        /// <summary>测试数据版本</summary>
+        /// <summary>
+        /// 测试数据版本
+        /// </summary>
         public int CurrentVersion => 1;
-        /// <summary>恢复默认值</summary>
+        /// <summary>
+        /// 恢复默认值
+        /// </summary>
         public void Reset() => Value = 0;
-        /// <summary>返回待序列化数据或模拟失败</summary>
+        /// <summary>
+        /// 返回待序列化数据或模拟失败
+        /// </summary>
         /// <param name="file">待提交的文件缓存</param>
         public void Save(ES3File file)
         {
             if (FailSave) throw new InvalidOperationException("模拟数据快照失败");
             file.Save(Key, Value);
         }
-        /// <summary>从真实ES3缓存载入数据</summary>
+        /// <summary>
+        /// 从真实ES3缓存载入数据
+        /// </summary>
         /// <param name="file">文件缓存</param>
         /// <param name="savedVersion">数据版本</param>
         public void Load(ES3File file, int savedVersion) => Value = file.Load<int>(Key);
     }
 
-    /// <summary>接收预期错误 避免故障场景向Unity控制台输出错误日志</summary>
+    /// <summary>
+    /// 接收预期错误 避免故障场景向Unity控制台输出错误日志
+    /// </summary>
     /// <typeparam name="T">日志分类</typeparam>
-    public sealed class TestLogger<T> : ILogger<T>
+    public class TestLogger<T> : ILogger<T>
     {
-        /// <summary>接收本用例预期产生的诊断信息</summary>
+        /// <summary>
+        /// 接收本用例预期产生的诊断信息
+        /// </summary>
         /// <param name="type">日志类型</param>
         /// <param name="message">日志说明</param>
         /// <param name="exception">原始异常</param>
